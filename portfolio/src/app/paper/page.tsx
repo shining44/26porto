@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Research — Ali Tayyebi',
-  description: 'Research publication on human-AI interaction patterns in conversational interfaces.',
+  description: 'Research publication on multi-line AI-assisted code authoring at scale.',
 };
 
 export default function PaperPage() {
@@ -15,7 +15,7 @@ export default function PaperPage() {
           Research
         </h1>
         <p className="text-lg text-[var(--muted)] max-w-xl">
-          Academic contributions to the field of human-AI interaction design.
+          Academic contributions to AI-assisted developer tooling.
         </p>
       </header>
 
@@ -24,15 +24,15 @@ export default function PaperPage() {
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
             <span className="text-xs text-[var(--muted)] border border-[var(--border)] px-2 py-0.5 rounded">
-              CHI 2024
+              arXiv 2024
             </span>
             <span className="text-xs text-[var(--muted)]">Co-author</span>
           </div>
           <h2 className="text-2xl font-medium tracking-tight mb-3">
-            Design Patterns for Trust Calibration in LLM-Based Conversational Interfaces
+            Multi-line AI-assisted Code Authoring
           </h2>
           <p className="text-sm text-[var(--muted)] mb-6">
-            Published in Proceedings of the 2024 CHI Conference on Human Factors in Computing Systems
+            arXiv:2402.04141 · February 2024
           </p>
         </div>
 
@@ -42,12 +42,12 @@ export default function PaperPage() {
             Problem
           </h3>
           <p className="text-[var(--muted)]">
-            As large language models become integrated into consumer and enterprise products,
-            users struggle to develop accurate mental models of AI capabilities. This leads to
-            two failure modes: over-trust (accepting incorrect outputs uncritically) and
-            under-trust (failing to use AI for tasks where it excels). The research investigates
-            design interventions that help users calibrate their trust appropriately based on
-            task type, model confidence, and output verifiability.
+            AI-assisted code authoring tools powered by large language models have transformed
+            developer workflows, but scaling from single-line to multi-line suggestions introduces
+            unique challenges. Developers need inline suggestions that are contextually relevant,
+            non-disruptive, and accurate enough to trust — all while maintaining the flow state
+            essential to productive coding. The research addresses how to design and deploy
+            multi-line code suggestions at scale to tens of thousands of developers.
           </p>
         </section>
 
@@ -57,16 +57,16 @@ export default function PaperPage() {
             Contribution
           </h3>
           <p className="text-[var(--muted)] mb-4">
-            My contribution focused on the design and implementation of interface prototypes
-            used in the study. Working with research partners, I developed a framework of
-            trust calibration patterns that were tested with participants across different
-            experience levels and task domains.
+            This paper presents CodeCompose, an AI-assisted code authoring tool deployed at Meta.
+            My contribution focused on the product design and user experience of multi-line
+            suggestions — defining interaction patterns that help developers efficiently review,
+            accept, or modify AI-generated code blocks.
           </p>
           <p className="text-[var(--muted)]">
-            Key design patterns identified include: explicit uncertainty indicators,
-            source attribution hierarchies, comparative response generation, and
-            progressive verification flows. The paper presents empirical evidence
-            for which patterns are most effective in different contexts.
+            Key challenges addressed include: determining when to show multi-line vs single-line
+            suggestions, designing clear visual presentation of multi-line code blocks, handling
+            partial acceptance of suggestions, and maintaining usability across different
+            programming languages and editor contexts.
           </p>
         </section>
 
@@ -76,10 +76,24 @@ export default function PaperPage() {
             Outcomes
           </h3>
           <ul className="text-[var(--muted)] list-disc pl-5 space-y-2">
-            <li>The paper was accepted at CHI 2024, the premier venue for human-computer interaction research</li>
-            <li>Findings have been integrated into design guidelines at Meta and influenced industry practices</li>
-            <li>The trust calibration framework is being extended in follow-up research</li>
+            <li>CodeCompose deployed to tens of thousands of developers at Meta</li>
+            <li>Multi-line suggestions significantly increased code acceptance rates</li>
+            <li>Established design patterns for AI code assistance adopted across the organization</li>
+            <li>Research contributed to the broader understanding of LLM-powered developer tools</li>
           </ul>
+        </section>
+
+        {/* Link */}
+        <section className="mb-12">
+          <a
+            href="https://arxiv.org/abs/2402.04141"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm font-medium hover:text-[var(--accent)] transition-colors"
+          >
+            Read the full paper on arXiv
+            <span aria-hidden="true">&rarr;</span>
+          </a>
         </section>
 
         {/* Citation */}
@@ -87,10 +101,10 @@ export default function PaperPage() {
           <h3 className="text-sm font-medium uppercase tracking-wide text-[var(--muted)] mb-4">
             Citation
           </h3>
-          <p className="text-sm text-[var(--muted)] font-mono">
-            Chen, L., Tayyebi, A., Ramirez, S., & Wong, K. (2024). Design Patterns for Trust
-            Calibration in LLM-Based Conversational Interfaces. In Proceedings of the 2024
-            CHI Conference on Human Factors in Computing Systems (CHI &apos;24). ACM, New York, NY, USA.
+          <p className="text-sm text-[var(--muted)] font-mono leading-relaxed">
+            Dunay, O., Cheng, D., Tait, A., Thakkar, P., Rigby, P.C., Chiu, A., Ahmad, I.,
+            Ganesan, A., Maddila, C., Murali, V., Tayyebi, A., &amp; Nagappan, N. (2024).
+            Multi-line AI-assisted Code Authoring. arXiv:2402.04141.
           </p>
         </section>
       </article>
