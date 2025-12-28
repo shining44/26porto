@@ -66,3 +66,13 @@ Configured for deployment at `https://shining44.github.io/26porto/`
 - `basePath: "/26porto"` in next.config.ts
 - Static export via `output: "export"`
 - Deploy workflow in `.github/workflows/deploy.yml`
+
+### Syncing Changes to /docs
+
+**IMPORTANT**: After making any changes to the portfolio, always rebuild and sync to `/docs`:
+
+```bash
+cd portfolio && npm run build && rm -rf ../docs && cp -r out ../docs
+```
+
+The `/docs` folder at the repository root contains the static build for GitHub Pages. This must be kept in sync with the source code. Always commit both the source changes and the updated `/docs` folder together.
