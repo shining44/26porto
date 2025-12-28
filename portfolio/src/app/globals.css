@@ -1,10 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fafafa;
-  --foreground: #171717;
-  --muted: #737373;
-  --accent: #525252;
+  --background: #ffffff;
+  --foreground: #1a1a1a;
+  --muted: #666666;
   --border: #e5e5e5;
 }
 
@@ -12,7 +11,6 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
-  --color-accent: var(--accent);
   --color-border: var(--border);
 }
 
@@ -22,72 +20,26 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Typography refinements */
 h1, h2, h3, h4 {
   font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1.2;
 }
 
-h1 {
-  font-size: 2.5rem;
-}
-
-h2 {
-  font-size: 1.75rem;
-}
-
-h3 {
-  font-size: 1.25rem;
-}
-
 p {
   line-height: 1.7;
-  color: var(--muted);
 }
 
-/* Link styles */
 a {
-  color: var(--foreground);
+  color: inherit;
   text-decoration: none;
-  transition: color 0.2s ease;
 }
 
-a:hover {
-  color: var(--accent);
-}
-
-/* Smooth scrolling */
 html {
   scroll-behavior: smooth;
 }
 
-/* Selection color */
 ::selection {
   background: var(--foreground);
   color: var(--background);
-}
-
-/* Pixelated image effect */
-.pixelated {
-  image-rendering: pixelated;
-  filter: blur(0.5px);
-}
-
-.redacted-overlay {
-  position: relative;
-}
-
-.redacted-overlay::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    45deg,
-    rgba(0,0,0,0.03),
-    rgba(0,0,0,0.03) 2px,
-    transparent 2px,
-    transparent 4px
-  );
-  pointer-events: none;
 }
