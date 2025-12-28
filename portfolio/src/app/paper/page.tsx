@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Research — Ali Tayyebi',
-  description: 'Research publication on multi-line AI-assisted code authoring at scale.',
+  description: 'CodeCompose: Multi-line AI-assisted code authoring at Meta.',
 };
 
 export default function PaperPage() {
@@ -15,7 +15,7 @@ export default function PaperPage() {
           Research
         </h1>
         <p className="text-lg text-[var(--muted)] max-w-xl">
-          Academic contributions to AI-assisted developer tooling.
+          Peer-reviewed research on AI-assisted developer tools at scale.
         </p>
       </header>
 
@@ -36,51 +36,86 @@ export default function PaperPage() {
           </p>
         </div>
 
-        {/* Problem */}
+        {/* Abstract */}
         <section className="mb-12">
           <h3 className="text-sm font-medium uppercase tracking-wide text-[var(--muted)] mb-4">
-            Problem
+            Abstract
           </h3>
-          <p className="text-[var(--muted)]">
-            AI-assisted code authoring tools powered by large language models have transformed
-            developer workflows, but scaling from single-line to multi-line suggestions introduces
-            unique challenges. Developers need inline suggestions that are contextually relevant,
-            non-disruptive, and accurate enough to trust — all while maintaining the flow state
-            essential to productive coding. The research addresses how to design and deploy
-            multi-line code suggestions at scale to tens of thousands of developers.
+          <p className="text-[var(--muted)] leading-relaxed">
+            CodeCompose is an AI-assisted code authoring tool powered by large language models
+            that provides inline suggestions to tens of thousands of developers at Meta.
+            This paper presents how we scaled the product from displaying single-line suggestions
+            to multi-line suggestions — an evolution that required overcoming several unique
+            challenges in improving usability for developers working across diverse codebases
+            and programming languages.
           </p>
+        </section>
+
+        {/* Challenges */}
+        <section className="mb-12">
+          <h3 className="text-sm font-medium uppercase tracking-wide text-[var(--muted)] mb-4">
+            Key Challenges
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-medium mb-2">The Jarring Effect</h4>
+              <p className="text-[var(--muted)] leading-relaxed">
+                Multi-line suggestions can create a disruptive experience when the LLM&apos;s
+                suggestions constantly move around the developer&apos;s existing code. We designed
+                interaction patterns that minimize cognitive disruption while maintaining
+                the visibility needed for developers to evaluate suggestions effectively.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-medium mb-2">Latency Optimization</h4>
+              <p className="text-[var(--muted)] leading-relaxed">
+                Multi-line suggestions take significantly longer to generate than single-line
+                completions. We implemented model-hosting optimizations that reduced multi-line
+                suggestion latency by 2.5×, making the experience feel responsive despite
+                the increased computational complexity.
+              </p>
+            </div>
+          </div>
         </section>
 
         {/* Contribution */}
         <section className="mb-12">
           <h3 className="text-sm font-medium uppercase tracking-wide text-[var(--muted)] mb-4">
-            Contribution
+            My Contribution
           </h3>
-          <p className="text-[var(--muted)] mb-4">
-            This paper presents CodeCompose, an AI-assisted code authoring tool deployed at Meta.
-            My contribution focused on the product design and user experience of multi-line
-            suggestions — defining interaction patterns that help developers efficiently review,
-            accept, or modify AI-generated code blocks.
-          </p>
-          <p className="text-[var(--muted)]">
-            Key challenges addressed include: determining when to show multi-line vs single-line
-            suggestions, designing clear visual presentation of multi-line code blocks, handling
-            partial acceptance of suggestions, and maintaining usability across different
-            programming languages and editor contexts.
+          <p className="text-[var(--muted)] leading-relaxed">
+            As part of the CodeCompose team, I contributed to the product design and user
+            experience strategy for multi-line suggestions. This involved defining when to
+            surface multi-line vs single-line completions, designing visual presentation
+            of code blocks, enabling partial acceptance workflows, and ensuring consistent
+            usability across programming languages and editor contexts.
           </p>
         </section>
 
-        {/* Outcomes */}
+        {/* Impact */}
         <section className="mb-12">
           <h3 className="text-sm font-medium uppercase tracking-wide text-[var(--muted)] mb-4">
-            Outcomes
+            Impact
           </h3>
           <ul className="text-[var(--muted)] list-disc pl-5 space-y-2">
-            <li>CodeCompose deployed to tens of thousands of developers at Meta</li>
-            <li>Multi-line suggestions significantly increased code acceptance rates</li>
-            <li>Established design patterns for AI code assistance adopted across the organization</li>
-            <li>Research contributed to the broader understanding of LLM-powered developer tools</li>
+            <li>Deployed to tens of thousands of developers at Meta</li>
+            <li>2.5× reduction in multi-line suggestion latency through model-hosting optimizations</li>
+            <li>Increased code acceptance rates with improved suggestion presentation</li>
+            <li>Established scalable design patterns for AI-assisted code authoring</li>
           </ul>
+        </section>
+
+        {/* Authors */}
+        <section className="mb-12">
+          <h3 className="text-sm font-medium uppercase tracking-wide text-[var(--muted)] mb-4">
+            Authors
+          </h3>
+          <p className="text-sm text-[var(--muted)] leading-relaxed">
+            Omer Dunay, Daniel Cheng, Adam Tait, Parth Thakkar, Peter C. Rigby, Andy Chiu,
+            Imad Ahmad, Arun Ganesan, Chandra Maddila, Vijayaraghavan Murali,{' '}
+            <span className="text-[var(--foreground)] font-medium">Ali Tayyebi</span>,
+            Nachiappan Nagappan
+          </p>
         </section>
 
         {/* Link */}
@@ -101,11 +136,17 @@ export default function PaperPage() {
           <h3 className="text-sm font-medium uppercase tracking-wide text-[var(--muted)] mb-4">
             Citation
           </h3>
-          <p className="text-sm text-[var(--muted)] font-mono leading-relaxed">
-            Dunay, O., Cheng, D., Tait, A., Thakkar, P., Rigby, P.C., Chiu, A., Ahmad, I.,
-            Ganesan, A., Maddila, C., Murali, V., Tayyebi, A., &amp; Nagappan, N. (2024).
-            Multi-line AI-assisted Code Authoring. arXiv:2402.04141.
-          </p>
+          <pre className="text-xs text-[var(--muted)] font-mono leading-relaxed whitespace-pre-wrap">
+{`@article{dunay2024multiline,
+  title={Multi-line AI-assisted Code Authoring},
+  author={Dunay, Omer and Cheng, Daniel and Tait, Adam and Thakkar, Parth
+          and Rigby, Peter C. and Chiu, Andy and Ahmad, Imad and Ganesan, Arun
+          and Maddila, Chandra and Murali, Vijayaraghavan and Tayyebi, Ali
+          and Nagappan, Nachiappan},
+  journal={arXiv preprint arXiv:2402.04141},
+  year={2024}
+}`}
+          </pre>
         </section>
       </article>
 
