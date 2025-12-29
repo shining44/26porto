@@ -50,9 +50,17 @@ npm run lint   # ESLint
 - Use `className` with Tailwind utilities
 
 ### Styling
-- Neutral palette: off-white (#fafafa), black (#171717), grey (#737373)
-- CSS custom properties defined in `globals.css`
-- No dark mode (single light theme)
+- Neutral palette defined via CSS custom properties in `globals.css`
+- Light mode: off-white (#fafafa), black (#171717), grey (#737373)
+- Dark mode: near-black (#0a0a0a), off-white (#ededed), grey (#a1a1a1)
+- System dark mode supported via `prefers-color-scheme` media query
+
+### Dark Mode Guidelines
+**IMPORTANT**: To prevent dark mode styling issues:
+- Always use CSS custom properties (`var(--background)`, `var(--foreground)`, `var(--muted)`, `var(--border)`) for colors
+- Never hardcode color values in components
+- Do NOT use `@theme inline` blocks in globals.css - use CSS variables directly with Tailwind's arbitrary value syntax (e.g., `text-[var(--muted)]`)
+- Test both light and dark modes after making styling changes
 
 ### Content
 - Tone: Serious, professional, no fluff
