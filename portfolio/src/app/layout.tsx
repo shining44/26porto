@@ -24,7 +24,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         <Navigation />
-        <main className="pt-16 min-h-screen">
+        <main className="min-h-screen">
           {children}
         </main>
         <Footer />
