@@ -1,110 +1,155 @@
-import Link from 'next/link';
-
-const featuredProjects = [
+const projects = [
   {
     title: 'Meta AI',
-    description: 'Consumer-facing AI assistant powering conversational experiences across Meta platforms.',
-    href: '/work/meta-ai',
+    category: 'Consumer AI',
+    year: '2023–Present',
+    description: 'Conversational AI assistant serving billions across Meta platforms.',
   },
   {
     title: 'Metamate',
-    description: 'Enterprise LLM solution enabling internal productivity and knowledge management.',
-    href: '/work/metamate',
+    category: 'Enterprise AI',
+    year: '2022–Present',
+    description: 'Internal LLM solution for knowledge management and productivity.',
   },
   {
     title: 'Devmate',
-    description: 'AI-powered developer tools for code generation and engineering workflows.',
-    href: '/work/devmate',
+    category: 'Developer Tools',
+    year: '2023–Present',
+    description: 'AI-powered code generation and engineering workflow tools.',
   },
+];
+
+const focusAreas = [
+  'Conversational AI',
+  'LLM Interface Design',
+  'Developer Experience',
+  'Design Leadership',
+  'Human-AI Interaction',
 ];
 
 export default function Home() {
   return (
-    <div className="max-w-4xl mx-auto px-6 py-24">
-      {/* Hero Section */}
-      <section className="mb-24">
-        <h1 className="text-[2.75rem] font-medium tracking-tight mb-6">
-          Director of AI-Driven Product Design
-        </h1>
-        <p className="text-xl text-[var(--muted)] max-w-2xl mb-8 leading-relaxed">
-          Leading a cross-functional design team at Meta Superintelligence Labs —
-          innovators of LLM-driven enterprise and consumer products.
+    <div className="max-w-3xl mx-auto px-6">
+      {/* Hero */}
+      <section className="pt-32 pb-24">
+        <p className="text-sm text-[var(--muted)] mb-4 tracking-wide">
+          Design Lead Manager, Meta Superintelligence Labs
         </p>
-        <div className="flex items-center gap-6">
-          <Link
-            href="/work"
-            className="inline-flex items-center gap-2 text-sm font-medium hover:text-[var(--accent)] transition-colors"
-          >
-            View selected work
-            <span aria-hidden="true">&rarr;</span>
-          </Link>
-          <Link
-            href="/contact"
-            className="text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
-          >
-            Get in touch
-          </Link>
-        </div>
+        <h1 className="text-[2.5rem] font-medium tracking-tight leading-[1.1] mb-8">
+          Building AI-powered interfaces
+          <br />
+          <span className="text-[var(--muted)]">for billions of users.</span>
+        </h1>
+        <p className="text-[var(--muted)] max-w-xl leading-relaxed">
+          I lead a team of product designers creating conversational AI,
+          intelligent suggestions, and developer tooling — translating
+          complex language models into intuitive experiences.
+        </p>
       </section>
 
-      {/* Overview */}
-      <section className="mb-24">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-[var(--muted)] mb-6">
-          Overview
+      {/* Work */}
+      <section id="work" className="py-24 border-t border-[var(--border)]">
+        <h2 className="text-xs font-medium uppercase tracking-widest text-[var(--muted)] mb-12">
+          Selected Work
         </h2>
-        <div className="grid gap-6 text-[var(--muted)]">
-          <p>
-            I lead a small team of coding product-designers building AI-powered
-            interfaces that serve billions of users. Our work spans conversational
-            AI, intelligent suggestions, and developer tooling — bridging the gap
-            between cutting-edge language models and intuitive user experiences.
-          </p>
-          <p>
-            My role combines design leadership with product management, ensuring
-            our team delivers solutions that are both technically sound and
-            deeply human-centered. I specialize in translating complex AI
-            capabilities into clear, usable design patterns.
-          </p>
-        </div>
-      </section>
-
-      {/* Featured Projects */}
-      <section>
-        <h2 className="text-sm font-medium uppercase tracking-wide text-[var(--muted)] mb-8">
-          Featured Projects
-        </h2>
-        <div className="grid gap-1">
-          {featuredProjects.map((project) => (
-            <Link
+        <div className="space-y-0">
+          {projects.map((project, index) => (
+            <article
               key={project.title}
-              href={project.href}
-              className="group py-6 border-t border-[var(--border)] flex items-start justify-between gap-8 hover:bg-neutral-50 -mx-4 px-4 transition-colors"
+              className={`py-8 ${index !== 0 ? 'border-t border-[var(--border)]' : ''}`}
             >
-              <div>
-                <h3 className="font-medium mb-2 group-hover:text-[var(--accent)] transition-colors">
+              <div className="flex items-baseline justify-between mb-3">
+                <h3 className="text-xl font-medium tracking-tight">
                   {project.title}
                 </h3>
-                <p className="text-sm text-[var(--muted)]">
-                  {project.description}
-                </p>
+                <span className="text-xs text-[var(--muted)]">
+                  {project.year}
+                </span>
               </div>
-              <span
-                aria-hidden="true"
-                className="text-[var(--muted)] group-hover:text-[var(--foreground)] group-hover:translate-x-1 transition-all mt-1"
-              >
-                &rarr;
-              </span>
-            </Link>
+              <p className="text-sm text-[var(--muted)] mb-2">
+                {project.category}
+              </p>
+              <p className="text-[var(--muted)] leading-relaxed">
+                {project.description}
+              </p>
+            </article>
           ))}
         </div>
-        <div className="pt-6 border-t border-[var(--border)]">
-          <Link
-            href="/work"
-            className="text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+      </section>
+
+      {/* Research */}
+      <section id="research" className="py-24 border-t border-[var(--border)]">
+        <h2 className="text-xs font-medium uppercase tracking-widest text-[var(--muted)] mb-12">
+          Research
+        </h2>
+        <article>
+          <div className="flex items-baseline gap-3 mb-3">
+            <span className="text-xs text-[var(--muted)] border border-[var(--border)] px-2 py-0.5">
+              arXiv 2024
+            </span>
+            <span className="text-xs text-[var(--muted)]">Co-author</span>
+          </div>
+          <h3 className="text-xl font-medium tracking-tight mb-4">
+            Multi-line AI-assisted Code Authoring
+          </h3>
+          <p className="text-[var(--muted)] leading-relaxed mb-6 max-w-xl">
+            CodeCompose is an AI-assisted code authoring tool deployed to
+            tens of thousands of developers at Meta. This paper presents
+            scaling from single-line to multi-line suggestions.
+          </p>
+          <a
+            href="https://arxiv.org/abs/2402.04141"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm font-medium hover:text-[var(--muted)] transition-colors"
           >
-            View all projects &rarr;
-          </Link>
+            Read paper
+            <span aria-hidden="true" className="text-xs">↗</span>
+          </a>
+        </article>
+      </section>
+
+      {/* About */}
+      <section className="py-24 border-t border-[var(--border)]">
+        <h2 className="text-xs font-medium uppercase tracking-widest text-[var(--muted)] mb-12">
+          Focus
+        </h2>
+        <div className="flex flex-wrap gap-2">
+          {focusAreas.map((area) => (
+            <span
+              key={area}
+              className="text-sm text-[var(--muted)] border border-[var(--border)] px-3 py-1.5"
+            >
+              {area}
+            </span>
+          ))}
         </div>
+      </section>
+
+      {/* Contact */}
+      <section id="contact" className="py-24 border-t border-[var(--border)]">
+        <h2 className="text-xs font-medium uppercase tracking-widest text-[var(--muted)] mb-12">
+          Contact
+        </h2>
+        <div className="space-y-4">
+          <a
+            href="mailto:ali@example.com"
+            className="block text-lg hover:text-[var(--muted)] transition-colors"
+          >
+            ali@example.com
+          </a>
+          <a
+            href="https://linkedin.com/in/alitayyebi"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-lg hover:text-[var(--muted)] transition-colors"
+          >
+            LinkedIn
+          </a>
+        </div>
+        <p className="text-sm text-[var(--muted)] mt-8">
+          San Francisco Bay Area
+        </p>
       </section>
     </div>
   );
