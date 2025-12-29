@@ -45,8 +45,9 @@ export default function Home() {
         </h1>
         <p className="text-[var(--muted)] max-w-xl leading-relaxed">
           I lead a team of product designers creating conversational AI,
-          intelligent suggestions, and developer tooling — translating
-          complex language models into intuitive experiences.
+          ambient computing, and productivity and developer tooling — translating
+          complex language models into intuitive experiences. I also build
+          and ship software myself.
         </p>
       </section>
 
