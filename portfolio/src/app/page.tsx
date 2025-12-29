@@ -4,14 +4,14 @@ const projects = [
     category: 'Consumer AI',
     year: '2023–Present',
     description:
-      'Generative AI assistant integrated across WhatsApp, Messenger, Instagram, and Meta devices. Features real-time web search, image generation via Emu, voice interaction with full-duplex dialogue, and personalized responses. Reached hundreds of millions of users through the standalone Meta AI app and Ray-Ban Meta smart glasses.',
+      'Generative AI assistant integrated across WhatsApp, Messenger, Instagram, and Meta devices. Features real-time web search, image generation, voice interaction with full-duplex dialogue, and personalized responses. Reached hundreds of millions of users through the standalone Meta AI app and Ray-Ban Meta smart glasses.',
   },
   {
     title: 'Metamate',
     category: 'Enterprise AI',
     year: '2023–Present',
     description:
-      "Internal AI assistant trained on Meta's proprietary data, serving as the company's enterprise ChatGPT. Enables employees to query internal documentation, summarize documents and meetings, draft communications, and build custom AI agents via scripting. Integrated with Code Llama and GPT-4 for enhanced coding assistance.",
+      "Internal AI assistant trained on Meta's proprietary data, serving as the company's enterprise AI solution. Enables employees to query internal documentation, summarize documents and meetings, draft communications, and build custom AI agents via scripting.",
   },
   {
     title: 'Devmate',
