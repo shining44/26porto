@@ -14,7 +14,7 @@ const projects = [
       "Internal AI assistant trained on Meta's proprietary data, serving as the company's enterprise ChatGPT. Enables employees to query internal documentation, summarize documents and meetings, draft communications, and build custom AI agents via scripting. Integrated with Code Llama and GPT-4 for enhanced coding assistance.",
   },
   {
-    title: 'DevMate',
+    title: 'Devmate',
     category: 'Developer Tools',
     year: '2024–Present',
     description:
