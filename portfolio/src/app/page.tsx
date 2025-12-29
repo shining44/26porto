@@ -7,7 +7,7 @@ const projects = [
       'Generative AI assistant integrated across WhatsApp, Messenger, Instagram, and Meta devices. Features real-time web search, image generation via Emu, voice interaction with full-duplex dialogue, and personalized responses. Reached hundreds of millions of users through the standalone Meta AI app and Ray-Ban Meta smart glasses.',
   },
   {
-    title: 'MetaMate',
+    title: 'Metamate',
     category: 'Enterprise AI',
     year: '2023–Present',
     description:
