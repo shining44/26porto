@@ -136,10 +136,10 @@ export default function Home() {
         </h2>
         <div className="space-y-4">
           <a
-            href="mailto:ali@example.com"
+            href="mailto:satjazayeri@gmail.com"
             className="block text-lg hover:text-[var(--muted)] transition-colors"
           >
-            ali@example.com
+            satjazayeri@gmail.com
           </a>
           <a
             href="https://linkedin.com/in/alitayyebi"
