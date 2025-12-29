@@ -3,19 +3,22 @@ const projects = [
     title: 'Meta AI',
     category: 'Consumer AI',
     year: '2023–Present',
-    description: 'Conversational AI assistant serving billions across Meta platforms.',
+    description:
+      'Generative AI assistant integrated across WhatsApp, Messenger, Instagram, and Meta devices. Features real-time web search, image generation via Emu, voice interaction with full-duplex dialogue, and personalized responses. Reached hundreds of millions of users through the standalone Meta AI app and Ray-Ban Meta smart glasses.',
   },
   {
     title: 'Metamate',
     category: 'Enterprise AI',
-    year: '2022–Present',
-    description: 'Internal LLM solution for knowledge management and productivity.',
+    year: '2023–Present',
+    description:
+      "Internal AI assistant trained on Meta's proprietary data, serving as the company's enterprise ChatGPT. Enables employees to query internal documentation, summarize documents and meetings, draft communications, and build custom AI agents via scripting. Integrated with Code Llama and GPT-4 for enhanced coding assistance.",
   },
   {
     title: 'Devmate',
     category: 'Developer Tools',
-    year: '2023–Present',
-    description: 'AI-powered code generation and engineering workflow tools.',
+    year: '2024–Present',
+    description:
+      "Autonomous AI coding assistant with multi-agent architecture coordinating Meta's Llama, Anthropic Claude, and OpenAI models. Generates, refactors, and debugs code across entire codebases. Can diagnose failing tests, fix bugs, and submit code changes autonomously—reducing complex task completion time by half.",
   },
 ];
 
