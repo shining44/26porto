@@ -37,5 +37,5 @@ jobs:
           port: 21
           timeout: 60000
           local-dir: ./portfolio/out/
-          server-dir: ./
+          server-dir: /public_html/
           dangerous-clean-slate: true
