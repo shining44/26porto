@@ -37,4 +37,4 @@ jobs:
           port: 21
           timeout: 60000
           local-dir: ./portfolio/out/
-          server-dir: /home/u303920040/domains/alialialiali.com/public_html/
+          server-dir: ./public_html/
