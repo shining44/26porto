@@ -67,20 +67,43 @@ npm run lint   # ESLint
 - Case studies follow: Context → Role & Process → Outcome
 - Confidential work shown via CSS-generated redacted placeholders
 
-## GitHub Pages
+## Deployment
+
+The project supports two deployment targets with different configurations:
+
+### GitHub Pages
 
 Configured for deployment at `https://shining44.github.io/26porto/`
 
-- `basePath: "/26porto"` in next.config.ts
+- Uses `basePath: "/26porto"` (set via `DEPLOY_TARGET=github-pages`)
 - Static export via `output: "export"`
 - Deploy workflow in `.github/workflows/deploy.yml`
+- Local build folder: `/docs`
 
-### Syncing Changes to /docs
-
-**IMPORTANT**: After making any changes to the portfolio, always rebuild and sync to `/docs`:
+**Syncing Changes to /docs:**
 
 ```bash
-cd portfolio && npm run build && rm -rf ../docs && cp -r out ../docs
+cd portfolio && DEPLOY_TARGET=github-pages npm run build && rm -rf ../docs && cp -r out ../docs
 ```
 
-The `/docs` folder at the repository root contains the static build for GitHub Pages. This must be kept in sync with the source code. Always commit both the source changes and the updated `/docs` folder together.
+### Hostinger
+
+Configured for deployment to Hostinger shared hosting.
+
+- No basePath (root domain deployment)
+- FTP deployment via `.github/workflows/deploy-hostinger.yml`
+- Server directory: `/public_html/`
+- Local build folder: `/public_html`
+
+**Syncing Changes to /public_html:**
+
+```bash
+cd portfolio && DEPLOY_TARGET=hostinger npm run build && rm -rf ../public_html && cp -r out ../public_html
+```
+
+### Important Notes
+
+- The `/docs` folder contains the GitHub Pages build (with basePath)
+- The `/public_html` folder contains the Hostinger build (no basePath)
+- Always commit both the source changes and the updated build folders together
+- The `next.config.ts` uses `DEPLOY_TARGET` environment variable to toggle basePath
