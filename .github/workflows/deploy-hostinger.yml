@@ -37,4 +37,4 @@ jobs:
           port: 21
           timeout: 60000
           local-dir: ./portfolio/out/
-          server-dir: ./public_html/
+          server-dir: ./
