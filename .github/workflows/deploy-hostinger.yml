@@ -30,11 +30,11 @@ jobs:
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.FTP_SERVER }}
+          server: ftp.alialialiali.com
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           port: 21
           timeout: 60000
           local-dir: ./portfolio/out/
-          server-dir: /public_html/
+          server-dir: /home/u303920040/domains/alialialiali.com/public_html/
