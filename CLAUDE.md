@@ -11,7 +11,7 @@ Minimalist portfolio website for Ali Tayyebi, Design Lead Manager at Meta Superi
 - **Framework**: Next.js 15 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS v4
-- **Deployment**: GitHub Pages (static export)
+- **Deployment**: Hostinger (static export via FTP)
 
 ## Project Structure
 
@@ -26,7 +26,7 @@ portfolio/
 │   │   └── contact/   # Contact info
 │   └── components/    # Reusable components
 ├── public/            # Static assets
-└── next.config.ts     # Next.js config (static export + basePath)
+└── next.config.ts     # Next.js config (static export)
 ```
 
 ## Commands
@@ -67,20 +67,21 @@ npm run lint   # ESLint
 - Case studies follow: Context → Role & Process → Outcome
 - Confidential work shown via CSS-generated redacted placeholders
 
-## GitHub Pages
+## Hostinger Deployment
 
-Configured for deployment at `https://shining44.github.io/26porto/`
+Deployed to Hostinger shared hosting via FTP.
 
-- `basePath: "/26porto"` in next.config.ts
 - Static export via `output: "export"`
-- Deploy workflow in `.github/workflows/deploy.yml`
+- FTP deployment via `.github/workflows/deploy-hostinger.yml`
+- Server directory: `/public_html/`
+- Local build folder: `/public_html`
 
-### Syncing Changes to /docs
+### Syncing Changes to /public_html
 
-**IMPORTANT**: After making any changes to the portfolio, always rebuild and sync to `/docs`:
+**IMPORTANT**: After making any changes to the portfolio, rebuild and sync to `/public_html`:
 
 ```bash
-cd portfolio && npm run build && rm -rf ../docs && cp -r out ../docs
+cd portfolio && npm run build && rm -rf ../public_html && cp -r out ../public_html
 ```
 
-The `/docs` folder at the repository root contains the static build for GitHub Pages. This must be kept in sync with the source code. Always commit both the source changes and the updated `/docs` folder together.
+The `/public_html` folder at the repository root contains the static build for Hostinger. This must be kept in sync with the source code. Always commit both the source changes and the updated `/public_html` folder together.

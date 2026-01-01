@@ -26,8 +26,6 @@ jobs:
       - name: Build for Hostinger
         run: npm run build
         working-directory: portfolio
-        env:
-          DEPLOY_TARGET: hostinger
 
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
