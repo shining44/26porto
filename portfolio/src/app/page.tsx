@@ -22,14 +22,6 @@ const projects = [
   },
 ];
 
-const focusAreas = [
-  'Conversational AI',
-  'LLM Interface Design',
-  'Developer Experience',
-  'Design Leadership',
-  'Human-AI Interaction',
-];
-
 export default function Home() {
   return (
     <div className="max-w-3xl mx-auto px-6">
@@ -110,23 +102,6 @@ export default function Home() {
             <span aria-hidden="true" className="text-xs">↗</span>
           </a>
         </article>
-      </section>
-
-      {/* About */}
-      <section className="py-24 border-t border-[var(--border)]">
-        <h2 className="text-xs font-medium uppercase tracking-widest text-[var(--muted)] mb-12">
-          Focus
-        </h2>
-        <div className="flex flex-wrap gap-2">
-          {focusAreas.map((area) => (
-            <span
-              key={area}
-              className="text-sm text-[var(--muted)] border border-[var(--border)] px-3 py-1.5"
-            >
-              {area}
-            </span>
-          ))}
-        </div>
       </section>
 
       {/* Contact */}
