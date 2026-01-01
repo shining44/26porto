@@ -73,7 +73,7 @@ Deployed to Hostinger shared hosting via FTP.
 
 - Static export via `output: "export"`
 - FTP deployment via `.github/workflows/deploy-hostinger.yml`
-- Server directory: `/public_html/` (FTP connects to home directory, deploy into public_html)
+- Server directory: `/` (FTP root is already public_html on Hostinger)
 - Local build folder: `/public_html`
 
 ### Syncing Changes to /public_html
