@@ -26,9 +26,11 @@ jobs:
         run: npm ci
         working-directory: portfolio
 
-      - name: Build
+      - name: Build for GitHub Pages
         run: npm run build
         working-directory: portfolio
+        env:
+          DEPLOY_TARGET: github-pages
 
       - name: Sync build to docs folder
         run: |
