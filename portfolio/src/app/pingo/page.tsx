@@ -6,11 +6,6 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 // TYPES
 // ============================================================================
 
-interface Position {
-  x: number;
-  y: number;
-}
-
 interface Car {
   lane: number;
   targetLane: number;
@@ -25,7 +20,6 @@ interface Obstacle {
   y: number;
   width: number;
   height: number;
-  type: 'crate' | 'cone' | 'barrier';
   passed: boolean;
 }
 
@@ -33,7 +27,6 @@ interface Coin {
   lane: number;
   y: number;
   collected: boolean;
-  pulsePhase: number;
 }
 
 interface Particle {
@@ -43,7 +36,6 @@ interface Particle {
   vy: number;
   life: number;
   maxLife: number;
-  color: string;
   size: number;
 }
 
@@ -70,34 +62,15 @@ interface HighScore {
 // ============================================================================
 
 const LANE_COUNT = 3;
-const LANE_WIDTH = 80;
-const CAR_WIDTH = 40;
-const CAR_HEIGHT = 70;
-const SWITCH_DURATION = 150; // ms
-const BASE_SPEED = 5;
-const MAX_SPEED = 12;
-const SPEED_INCREMENT = 0.001;
-
-const OBSTACLE_SPAWN_DISTANCE = 300;
-const MIN_OBSTACLE_GAP = 200;
-const COIN_SPAWN_DISTANCE = 150;
-
-const COLORS = {
-  background: '#0a0a0a',
-  lane: '#1a1a2e',
-  laneGlow: '#00f5ff',
-  laneLine: '#16213e',
-  car: '#00f5ff',
-  carGlow: '#00f5ff',
-  obstacle: '#ff0055',
-  obstacleGlow: '#ff0055',
-  coin: '#ffd700',
-  coinGlow: '#ffee00',
-  text: '#ffffff',
-  textMuted: '#888888',
-  accent: '#00f5ff',
-  comboGlow: '#00ff88',
-};
+const LANE_WIDTH = 70;
+const CAR_WIDTH = 32;
+const CAR_HEIGHT = 56;
+const SWITCH_DURATION = 140;
+const BASE_SPEED = 4.5;
+const MAX_SPEED = 11;
+const SPEED_INCREMENT = 0.0008;
+const MIN_OBSTACLE_GAP = 220;
+const COIN_SPAWN_DISTANCE = 160;
 
 // ============================================================================
 // GAME COMPONENT
@@ -108,7 +81,14 @@ export default function PingoGame() {
   const animationRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
 
-  // Game state refs (for animation loop access)
+  // Theme colors (will be read from CSS variables)
+  const colorsRef = useRef({
+    background: '#fafafa',
+    foreground: '#171717',
+    muted: '#737373',
+    border: '#e5e5e5',
+  });
+
   const gameStateRef = useRef<GameState>({
     screen: 'home',
     score: 0,
@@ -136,13 +116,9 @@ export default function PingoGame() {
   const lastCoinYRef = useRef<number>(0);
   const patternIndexRef = useRef<number>(0);
 
-  // React state for UI updates
   const [gameState, setGameState] = useState<GameState>(gameStateRef.current);
   const [highScore, setHighScore] = useState<HighScore | null>(null);
-  const [screenShake, setScreenShake] = useState({ x: 0, y: 0 });
-
-  // Canvas dimensions
-  const [dimensions, setDimensions] = useState({ width: 400, height: 700 });
+  const [dimensions, setDimensions] = useState({ width: 340, height: 600 });
 
   // ============================================================================
   // UTILITY FUNCTIONS
@@ -156,25 +132,32 @@ export default function PingoGame() {
   }, [dimensions.width]);
 
   const easeOutQuad = (t: number): number => t * (2 - t);
-
   const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
+
+  // Read CSS variables for theme colors
+  const updateColors = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      const styles = getComputedStyle(document.documentElement);
+      colorsRef.current = {
+        background: styles.getPropertyValue('--background').trim() || '#fafafa',
+        foreground: styles.getPropertyValue('--foreground').trim() || '#171717',
+        muted: styles.getPropertyValue('--muted').trim() || '#737373',
+        border: styles.getPropertyValue('--border').trim() || '#e5e5e5',
+      };
+    }
+  }, []);
 
   // ============================================================================
   // SPAWN PATTERNS
   // ============================================================================
 
   const patterns = [
-    // Single blocker
     [{ lane: 0 }],
     [{ lane: 1 }],
     [{ lane: 2 }],
-    // Double blocker (force specific lane)
     [{ lane: 0 }, { lane: 1 }],
     [{ lane: 1 }, { lane: 2 }],
     [{ lane: 0 }, { lane: 2 }],
-    // Zigzag setup (single)
-    [{ lane: 0 }],
-    [{ lane: 2 }],
   ];
 
   const spawnObstaclePattern = useCallback(() => {
@@ -184,29 +167,24 @@ export default function PingoGame() {
     const pattern = patterns[patternIndexRef.current % patterns.length];
     patternIndexRef.current++;
 
-    const obstacleTypes: ('crate' | 'cone' | 'barrier')[] = ['crate', 'cone', 'barrier'];
-    const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
-
     pattern.forEach(({ lane }) => {
       obstaclesRef.current.push({
         lane,
-        y: -100,
-        width: lane === 1 ? 50 : 45,
-        height: type === 'cone' ? 30 : 50,
-        type,
+        y: -80,
+        width: 38,
+        height: 38,
         passed: false,
       });
     });
 
-    lastObstacleYRef.current = -100;
+    lastObstacleYRef.current = -80;
   }, []);
 
   const spawnCoin = useCallback(() => {
     const state = gameStateRef.current;
     if (state.screen !== 'playing') return;
 
-    // Spawn coins in safe lanes (not blocked by recent obstacles)
-    const recentObstacles = obstaclesRef.current.filter(o => o.y < 0 && o.y > -200);
+    const recentObstacles = obstaclesRef.current.filter(o => o.y < 0 && o.y > -180);
     const blockedLanes = new Set(recentObstacles.map(o => o.lane));
     const safeLanes = [0, 1, 2].filter(l => !blockedLanes.has(l));
 
@@ -214,23 +192,22 @@ export default function PingoGame() {
       const lane = safeLanes[Math.floor(Math.random() * safeLanes.length)];
       coinsRef.current.push({
         lane,
-        y: -50,
+        y: -40,
         collected: false,
-        pulsePhase: Math.random() * Math.PI * 2,
       });
     }
 
-    lastCoinYRef.current = -50;
+    lastCoinYRef.current = -40;
   }, []);
 
   // ============================================================================
-  // PARTICLE EFFECTS
+  // PARTICLE EFFECTS (subtle)
   // ============================================================================
 
-  const spawnParticles = useCallback((x: number, y: number, color: string, count: number) => {
+  const spawnParticles = useCallback((x: number, y: number, count: number) => {
     for (let i = 0; i < count; i++) {
-      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
-      const speed = 2 + Math.random() * 3;
+      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.3;
+      const speed = 1 + Math.random() * 2;
       particlesRef.current.push({
         x,
         y,
@@ -238,23 +215,9 @@ export default function PingoGame() {
         vy: Math.sin(angle) * speed,
         life: 1,
         maxLife: 1,
-        color,
-        size: 3 + Math.random() * 3,
+        size: 2 + Math.random() * 2,
       });
     }
-  }, []);
-
-  const spawnDriftTrail = useCallback((x: number, y: number) => {
-    particlesRef.current.push({
-      x: x + (Math.random() - 0.5) * 20,
-      y: y + CAR_HEIGHT / 2,
-      vx: (Math.random() - 0.5) * 0.5,
-      vy: 2 + Math.random(),
-      life: 0.5,
-      maxLife: 0.5,
-      color: 'rgba(100, 100, 100, 0.5)',
-      size: 4 + Math.random() * 4,
-    });
   }, []);
 
   // ============================================================================
@@ -265,13 +228,11 @@ export default function PingoGame() {
     const car = carRef.current;
     const state = gameStateRef.current;
 
-    // Car hitbox (slightly smaller for forgiveness)
-    const carLeft = car.x - CAR_WIDTH / 2 + 5;
-    const carRight = car.x + CAR_WIDTH / 2 - 5;
-    const carTop = car.y - CAR_HEIGHT / 2 + 10;
-    const carBottom = car.y + CAR_HEIGHT / 2 - 5;
+    const carLeft = car.x - CAR_WIDTH / 2 + 4;
+    const carRight = car.x + CAR_WIDTH / 2 - 4;
+    const carTop = car.y - CAR_HEIGHT / 2 + 8;
+    const carBottom = car.y + CAR_HEIGHT / 2 - 4;
 
-    // Check obstacle collisions
     for (const obstacle of obstaclesRef.current) {
       if (obstacle.passed) continue;
 
@@ -280,30 +241,22 @@ export default function PingoGame() {
       const obsTop = obstacle.y - obstacle.height / 2;
       const obsBottom = obstacle.y + obstacle.height / 2;
 
-      // Check if obstacle passed car
       if (obsTop > carBottom && !obstacle.passed) {
         obstacle.passed = true;
-
-        // Check for near miss
-        if (car.lane === obstacle.lane || Math.abs(car.x - getLaneX(obstacle.lane)) < LANE_WIDTH) {
-          // Near miss bonus!
+        if (car.lane === obstacle.lane || Math.abs(car.x - getLaneX(obstacle.lane)) < LANE_WIDTH * 0.6) {
           state.score += 15;
           state.nearMisses++;
           state.combo++;
           if (state.combo > state.maxCombo) state.maxCombo = state.combo;
-          spawnParticles(car.x, car.y, COLORS.comboGlow, 5);
         }
         continue;
       }
 
-      // Check collision
       if (carRight > obsLeft && carLeft < obsRight && carBottom > obsTop && carTop < obsBottom) {
-        // Collision!
         return true;
       }
     }
 
-    // Check coin collection
     for (const coin of coinsRef.current) {
       if (coin.collected) continue;
 
@@ -311,13 +264,13 @@ export default function PingoGame() {
       const coinY = coin.y;
       const distance = Math.sqrt((car.x - coinX) ** 2 + (car.y - coinY) ** 2);
 
-      if (distance < 35) {
+      if (distance < 28) {
         coin.collected = true;
         state.coins++;
         state.score += 10;
         state.combo++;
         if (state.combo > state.maxCombo) state.maxCombo = state.combo;
-        spawnParticles(coinX, coinY, COLORS.coin, 8);
+        spawnParticles(coinX, coinY, 6);
       }
     }
 
@@ -340,93 +293,64 @@ export default function PingoGame() {
 
     const state = gameStateRef.current;
     const car = carRef.current;
+    const colors = colorsRef.current;
 
     // Clear canvas
-    ctx.fillStyle = COLORS.background;
+    ctx.fillStyle = colors.background;
     ctx.fillRect(0, 0, dimensions.width, dimensions.height);
 
     if (state.screen === 'playing') {
-      // Update speed
       state.speed = Math.min(MAX_SPEED, state.speed + SPEED_INCREMENT);
-
-      // Update distance and score
       state.distance += state.speed;
       state.score += 1;
 
-      // Update car lane switching
       if (car.switchProgress < 1) {
         car.switchProgress = Math.min(1, car.switchProgress + deltaTime / (SWITCH_DURATION / 1000));
         const easedProgress = easeOutQuad(car.switchProgress);
         const prevLaneX = getLaneX(car.lane);
         const targetLaneX = getLaneX(car.targetLane);
         car.x = lerp(prevLaneX, targetLaneX, easedProgress);
-        car.rotation = (car.targetLane - car.lane) * 15 * (1 - easedProgress);
-
-        // Drift trail
-        if (Math.random() < 0.3) {
-          spawnDriftTrail(car.x, car.y);
-        }
+        car.rotation = (car.targetLane - car.lane) * 12 * (1 - easedProgress);
       } else {
         car.lane = car.targetLane;
         car.x = getLaneX(car.lane);
-        car.rotation = lerp(car.rotation, 0, 0.1);
+        car.rotation = lerp(car.rotation, 0, 0.15);
       }
 
-      // Move obstacles
-      obstaclesRef.current.forEach(obs => {
-        obs.y += state.speed;
-      });
+      obstaclesRef.current.forEach(obs => { obs.y += state.speed; });
+      coinsRef.current.forEach(coin => { coin.y += state.speed; });
 
-      // Move coins
-      coinsRef.current.forEach(coin => {
-        coin.y += state.speed;
-        coin.pulsePhase += deltaTime * 5;
-      });
-
-      // Spawn obstacles
       if (lastObstacleYRef.current > MIN_OBSTACLE_GAP) {
-        const spawnChance = 0.02 + state.speed * 0.005;
+        const spawnChance = 0.015 + state.speed * 0.004;
         if (Math.random() < spawnChance) {
           spawnObstaclePattern();
         }
       }
       lastObstacleYRef.current += state.speed;
 
-      // Spawn coins
       if (lastCoinYRef.current > COIN_SPAWN_DISTANCE) {
-        if (Math.random() < 0.4) {
+        if (Math.random() < 0.35) {
           spawnCoin();
         }
         lastCoinYRef.current = 0;
       }
       lastCoinYRef.current += state.speed;
 
-      // Clean up off-screen objects
       obstaclesRef.current = obstaclesRef.current.filter(o => o.y < dimensions.height + 100);
       coinsRef.current = coinsRef.current.filter(c => c.y < dimensions.height + 50 && !c.collected);
 
-      // Update particles
       particlesRef.current.forEach(p => {
         p.x += p.vx;
         p.y += p.vy;
-        p.life -= deltaTime * 2;
+        p.life -= deltaTime * 3;
       });
       particlesRef.current = particlesRef.current.filter(p => p.life > 0);
 
-      // Check collisions
       if (checkCollisions()) {
-        // Game over
         state.screen = 'gameover';
         state.combo = 0;
+        spawnParticles(car.x, car.y, 12);
 
-        // Screen shake
-        setScreenShake({ x: (Math.random() - 0.5) * 10, y: (Math.random() - 0.5) * 10 });
-        setTimeout(() => setScreenShake({ x: 0, y: 0 }), 100);
-
-        // Explosion particles
-        spawnParticles(car.x, car.y, COLORS.obstacle, 20);
-
-        // Save high score
         const newScore: HighScore = {
           score: state.score,
           coins: state.coins,
@@ -447,226 +371,140 @@ export default function PingoGame() {
         return;
       }
 
-      // Update React state periodically
       setGameState({ ...state });
     }
 
     // ========================================
-    // RENDERING
+    // RENDERING - Minimal aesthetic
     // ========================================
 
-    ctx.save();
-    ctx.translate(screenShake.x, screenShake.y);
-
-    // Draw road
-    const roadWidth = LANE_COUNT * LANE_WIDTH + 40;
+    const roadWidth = LANE_COUNT * LANE_WIDTH;
     const roadX = (dimensions.width - roadWidth) / 2;
 
-    // Road background with gradient
-    const roadGradient = ctx.createLinearGradient(roadX, 0, roadX + roadWidth, 0);
-    roadGradient.addColorStop(0, '#0f0f1a');
-    roadGradient.addColorStop(0.5, '#1a1a2e');
-    roadGradient.addColorStop(1, '#0f0f1a');
-    ctx.fillStyle = roadGradient;
+    // Road background - subtle
+    ctx.fillStyle = colors.border;
+    ctx.globalAlpha = 0.3;
     ctx.fillRect(roadX, 0, roadWidth, dimensions.height);
+    ctx.globalAlpha = 1;
 
-    // Lane lines (animated)
-    ctx.strokeStyle = COLORS.laneLine;
-    ctx.lineWidth = 2;
-    ctx.setLineDash([30, 20]);
-    const lineOffset = (state.distance % 50);
+    // Lane dividers - thin dashed lines
+    ctx.strokeStyle = colors.border;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([20, 15]);
+    const lineOffset = (state.distance % 35);
 
     for (let i = 1; i < LANE_COUNT; i++) {
       const x = getLaneX(i) - LANE_WIDTH / 2;
       ctx.beginPath();
-      ctx.moveTo(x, -50 + lineOffset);
+      ctx.moveTo(x, -35 + lineOffset);
       ctx.lineTo(x, dimensions.height);
       ctx.stroke();
     }
     ctx.setLineDash([]);
 
-    // Road edge glow
-    ctx.shadowColor = COLORS.laneGlow;
-    ctx.shadowBlur = 15;
-    ctx.strokeStyle = COLORS.laneGlow;
-    ctx.lineWidth = 3;
-    ctx.globalAlpha = 0.5;
-
-    // Left edge
+    // Road edges - solid thin lines
+    ctx.strokeStyle = colors.muted;
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(roadX, 0);
     ctx.lineTo(roadX, dimensions.height);
     ctx.stroke();
-
-    // Right edge
     ctx.beginPath();
     ctx.moveTo(roadX + roadWidth, 0);
     ctx.lineTo(roadX + roadWidth, dimensions.height);
     ctx.stroke();
 
-    ctx.globalAlpha = 1;
-    ctx.shadowBlur = 0;
-
-    // Draw coins
+    // Draw coins - simple hollow circles
     coinsRef.current.forEach(coin => {
       if (coin.collected) return;
-
       const x = getLaneX(coin.lane);
       const y = coin.y;
-      const pulse = Math.sin(coin.pulsePhase) * 0.2 + 1;
-      const size = 15 * pulse;
 
-      // Glow
-      ctx.shadowColor = COLORS.coinGlow;
-      ctx.shadowBlur = 20;
-
-      // Coin body
-      ctx.fillStyle = COLORS.coin;
+      ctx.strokeStyle = colors.foreground;
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.arc(x, y, size, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.arc(x, y, 10, 0, Math.PI * 2);
+      ctx.stroke();
 
-      // Inner highlight
-      ctx.fillStyle = '#ffee88';
+      // Small inner dot
+      ctx.fillStyle = colors.foreground;
       ctx.beginPath();
-      ctx.arc(x - 3, y - 3, size * 0.4, 0, Math.PI * 2);
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
       ctx.fill();
-
-      ctx.shadowBlur = 0;
     });
 
-    // Draw obstacles
+    // Draw obstacles - simple filled squares
     obstaclesRef.current.forEach(obs => {
       const x = getLaneX(obs.lane);
       const y = obs.y;
 
-      // Glow
-      ctx.shadowColor = COLORS.obstacleGlow;
-      ctx.shadowBlur = 15;
-
-      ctx.fillStyle = COLORS.obstacle;
-
-      if (obs.type === 'cone') {
-        // Triangle cone
-        ctx.beginPath();
-        ctx.moveTo(x, y - obs.height / 2);
-        ctx.lineTo(x - obs.width / 2, y + obs.height / 2);
-        ctx.lineTo(x + obs.width / 2, y + obs.height / 2);
-        ctx.closePath();
-        ctx.fill();
-      } else if (obs.type === 'barrier') {
-        // Striped barrier
-        ctx.fillRect(x - obs.width / 2, y - obs.height / 2, obs.width, obs.height);
-        ctx.fillStyle = '#ff6688';
-        ctx.fillRect(x - obs.width / 2, y - obs.height / 4, obs.width, obs.height / 4);
-      } else {
-        // Crate
-        ctx.fillRect(x - obs.width / 2, y - obs.height / 2, obs.width, obs.height);
-        // Cross pattern
-        ctx.strokeStyle = '#cc0044';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(x - obs.width / 2, y - obs.height / 2);
-        ctx.lineTo(x + obs.width / 2, y + obs.height / 2);
-        ctx.moveTo(x + obs.width / 2, y - obs.height / 2);
-        ctx.lineTo(x - obs.width / 2, y + obs.height / 2);
-        ctx.stroke();
-      }
-
-      ctx.shadowBlur = 0;
+      ctx.fillStyle = colors.foreground;
+      ctx.fillRect(
+        x - obs.width / 2,
+        y - obs.height / 2,
+        obs.width,
+        obs.height
+      );
     });
 
-    // Draw particles
+    // Draw particles - small fading dots
     particlesRef.current.forEach(p => {
-      ctx.globalAlpha = p.life / p.maxLife;
-      ctx.fillStyle = p.color;
+      ctx.globalAlpha = p.life / p.maxLife * 0.6;
+      ctx.fillStyle = colors.muted;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size * (p.life / p.maxLife), 0, Math.PI * 2);
       ctx.fill();
     });
     ctx.globalAlpha = 1;
 
-    // Draw car
+    // Draw car - minimal rectangle with subtle details
     if (state.screen === 'playing' || state.screen === 'gameover') {
       ctx.save();
       ctx.translate(car.x, car.y);
       ctx.rotate((car.rotation * Math.PI) / 180);
 
-      // Car glow
-      ctx.shadowColor = COLORS.carGlow;
-      ctx.shadowBlur = 25;
+      // Car body - hollow rectangle
+      ctx.strokeStyle = colors.foreground;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-CAR_WIDTH / 2, -CAR_HEIGHT / 2, CAR_WIDTH, CAR_HEIGHT);
 
-      // Car body
-      const carGradient = ctx.createLinearGradient(-CAR_WIDTH / 2, 0, CAR_WIDTH / 2, 0);
-      carGradient.addColorStop(0, '#006688');
-      carGradient.addColorStop(0.5, COLORS.car);
-      carGradient.addColorStop(1, '#006688');
-      ctx.fillStyle = carGradient;
-
-      // Main body (rounded rectangle)
+      // Front indicator line
       ctx.beginPath();
-      ctx.roundRect(-CAR_WIDTH / 2, -CAR_HEIGHT / 2, CAR_WIDTH, CAR_HEIGHT, 8);
-      ctx.fill();
+      ctx.moveTo(-CAR_WIDTH / 2 + 6, -CAR_HEIGHT / 2 + 10);
+      ctx.lineTo(CAR_WIDTH / 2 - 6, -CAR_HEIGHT / 2 + 10);
+      ctx.stroke();
 
-      // Windshield
-      ctx.fillStyle = '#003344';
+      // Center line
+      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.roundRect(-CAR_WIDTH / 2 + 6, -CAR_HEIGHT / 2 + 10, CAR_WIDTH - 12, 20, 4);
-      ctx.fill();
+      ctx.moveTo(0, -CAR_HEIGHT / 2 + 16);
+      ctx.lineTo(0, CAR_HEIGHT / 2 - 8);
+      ctx.stroke();
 
-      // Headlights
-      ctx.fillStyle = '#ffffff';
-      ctx.shadowColor = '#ffffff';
-      ctx.shadowBlur = 10;
-      ctx.beginPath();
-      ctx.arc(-CAR_WIDTH / 2 + 8, -CAR_HEIGHT / 2 + 5, 4, 0, Math.PI * 2);
-      ctx.arc(CAR_WIDTH / 2 - 8, -CAR_HEIGHT / 2 + 5, 4, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Taillights
-      ctx.fillStyle = '#ff3366';
-      ctx.shadowColor = '#ff3366';
-      ctx.beginPath();
-      ctx.arc(-CAR_WIDTH / 2 + 8, CAR_HEIGHT / 2 - 5, 4, 0, Math.PI * 2);
-      ctx.arc(CAR_WIDTH / 2 - 8, CAR_HEIGHT / 2 - 5, 4, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.shadowBlur = 0;
       ctx.restore();
     }
 
-    // Draw HUD for playing state
+    // HUD - minimal text
     if (state.screen === 'playing') {
-      // Score
-      ctx.fillStyle = COLORS.text;
-      ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.fillStyle = colors.foreground;
+      ctx.font = '500 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText(`${state.score}`, 20, 40);
+      ctx.fillText(`${state.score}`, 20, 36);
 
-      // Coins
-      ctx.fillStyle = COLORS.coin;
-      ctx.font = '18px -apple-system, BlinkMacSystemFont, sans-serif';
-      ctx.fillText(`${state.coins}`, 20, 70);
+      ctx.fillStyle = colors.muted;
+      ctx.font = '400 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillText(`${state.coins}`, 20, 56);
 
-      // Combo
       if (state.combo > 1) {
-        ctx.fillStyle = COLORS.comboGlow;
-        ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillStyle = colors.foreground;
+        ctx.font = '500 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
         ctx.textAlign = 'right';
-        ctx.fillText(`x${state.combo}`, dimensions.width - 20, 40);
+        ctx.fillText(`${state.combo}x`, dimensions.width - 20, 36);
       }
-
-      // Speed indicator
-      ctx.fillStyle = COLORS.textMuted;
-      ctx.font = '14px -apple-system, BlinkMacSystemFont, sans-serif';
-      ctx.textAlign = 'right';
-      ctx.fillText(`${Math.floor(state.speed * 10)} km/h`, dimensions.width - 20, 70);
     }
 
-    ctx.restore();
-
     animationRef.current = requestAnimationFrame(gameLoop);
-  }, [dimensions, getLaneX, checkCollisions, spawnObstaclePattern, spawnCoin, spawnDriftTrail, spawnParticles, screenShake]);
+  }, [dimensions, getLaneX, checkCollisions, spawnObstaclePattern, spawnCoin, spawnParticles]);
 
   // ============================================================================
   // INPUT HANDLING
@@ -687,17 +525,12 @@ export default function PingoGame() {
     }
 
     if (state.screen === 'playing' && car.switchProgress >= 0.8) {
-      // Cyclic lane switch
       car.targetLane = (car.targetLane + 1) % LANE_COUNT;
       car.switchProgress = 0;
-
-      // Reset combo if no near miss within a while (simplified)
-      // In a real game, you'd track time since last scoring action
     }
   }, []);
 
   const startGame = useCallback(() => {
-    // Reset game state
     gameStateRef.current = {
       screen: 'playing',
       score: 0,
@@ -709,17 +542,15 @@ export default function PingoGame() {
       nearMisses: 0,
     };
 
-    // Reset car
     carRef.current = {
       lane: 1,
       targetLane: 1,
       x: getLaneX(1),
-      y: dimensions.height - 150,
+      y: dimensions.height - 120,
       rotation: 0,
       switchProgress: 1,
     };
 
-    // Clear objects
     obstaclesRef.current = [];
     coinsRef.current = [];
     particlesRef.current = [];
@@ -734,11 +565,10 @@ export default function PingoGame() {
   // EFFECTS
   // ============================================================================
 
-  // Handle window resize
   useEffect(() => {
     const handleResize = () => {
-      const width = Math.min(400, window.innerWidth);
-      const height = Math.min(700, window.innerHeight - 100);
+      const width = Math.min(340, window.innerWidth - 40);
+      const height = Math.min(600, window.innerHeight - 160);
       setDimensions({ width, height });
     };
 
@@ -747,15 +577,13 @@ export default function PingoGame() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Update car position when dimensions change
   useEffect(() => {
     if (gameStateRef.current.screen === 'playing') {
-      carRef.current.y = dimensions.height - 150;
+      carRef.current.y = dimensions.height - 120;
       carRef.current.x = getLaneX(carRef.current.lane);
     }
   }, [dimensions, getLaneX]);
 
-  // Load high score
   useEffect(() => {
     const saved = localStorage.getItem('pingo_highscore');
     if (saved) {
@@ -763,21 +591,28 @@ export default function PingoGame() {
     }
   }, []);
 
-  // Start game loop
   useEffect(() => {
-    // Initialize car position
+    updateColors();
+
+    // Listen for color scheme changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      setTimeout(updateColors, 50);
+    };
+    mediaQuery.addEventListener('change', handleChange);
+
     carRef.current.x = getLaneX(1);
-    carRef.current.y = dimensions.height - 150;
+    carRef.current.y = dimensions.height - 120;
 
     lastTimeRef.current = 0;
     animationRef.current = requestAnimationFrame(gameLoop);
 
     return () => {
       cancelAnimationFrame(animationRef.current);
+      mediaQuery.removeEventListener('change', handleChange);
     };
-  }, [gameLoop, getLaneX, dimensions.height]);
+  }, [gameLoop, getLaneX, dimensions.height, updateColors]);
 
-  // Keyboard input
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space' || e.code === 'ArrowRight' || e.code === 'ArrowLeft') {
@@ -795,13 +630,8 @@ export default function PingoGame() {
   // ============================================================================
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center"
-      style={{ background: COLORS.background }}
-    >
-      {/* Game Container */}
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12 bg-[var(--background)]">
       <div className="relative">
-        {/* Canvas */}
         <canvas
           ref={canvasRef}
           width={dimensions.width}
@@ -811,68 +641,39 @@ export default function PingoGame() {
             e.preventDefault();
             handleInput();
           }}
-          className="cursor-pointer touch-none"
-          style={{
-            borderRadius: '12px',
-            boxShadow: `0 0 60px ${COLORS.accent}22`,
-          }}
+          className="cursor-pointer touch-none border border-[var(--border)]"
         />
 
-        {/* Home Screen Overlay */}
+        {/* Home Screen */}
         {gameState.screen === 'home' && (
-          <div
-            className="absolute inset-0 flex flex-col items-center justify-center"
-            style={{
-              background: 'rgba(10, 10, 10, 0.85)',
-              borderRadius: '12px',
-            }}
-          >
-            <h1
-              className="text-4xl font-bold mb-2 tracking-tight"
-              style={{
-                color: COLORS.accent,
-                textShadow: `0 0 30px ${COLORS.accent}`,
-              }}
-            >
-              ONE-BUTTON
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--background)]/95 border border-[var(--border)]">
+            <p className="text-xs text-[var(--muted)] uppercase tracking-widest mb-3">
+              One-Button
+            </p>
+            <h1 className="text-3xl font-medium tracking-tight text-[var(--foreground)] mb-8">
+              Drift
             </h1>
-            <h2
-              className="text-5xl font-black mb-8"
-              style={{
-                color: COLORS.text,
-                textShadow: `0 0 20px ${COLORS.accent}44`,
-              }}
-            >
-              DRIFT
-            </h2>
 
-            <div className="mb-8 text-center px-8">
-              <p style={{ color: COLORS.textMuted }} className="mb-2">
+            <div className="mb-10 text-center">
+              <p className="text-[var(--muted)] text-sm mb-1">
                 Tap or press Space to switch lanes
               </p>
-              <p style={{ color: COLORS.textMuted }} className="text-sm">
-                Collect coins avoid obstacles
+              <p className="text-[var(--muted)] text-xs">
+                Collect coins, avoid obstacles
               </p>
             </div>
 
             <button
               onClick={handleInput}
-              className="px-12 py-4 text-xl font-bold rounded-full transition-all hover:scale-105"
-              style={{
-                background: COLORS.accent,
-                color: COLORS.background,
-                boxShadow: `0 0 30px ${COLORS.accent}66`,
-              }}
+              className="px-8 py-3 text-sm font-medium border border-[var(--foreground)] text-[var(--foreground)] hover:bg-[var(--foreground)] hover:text-[var(--background)] transition-colors"
             >
-              PLAY
+              Play
             </button>
 
             {highScore && (
-              <div className="mt-8 text-center">
-                <p style={{ color: COLORS.textMuted }} className="text-sm">
-                  Best Score
-                </p>
-                <p style={{ color: COLORS.coin }} className="text-2xl font-bold">
+              <div className="mt-10 text-center">
+                <p className="text-xs text-[var(--muted)] mb-1">Best</p>
+                <p className="text-lg font-medium text-[var(--foreground)]">
                   {highScore.score}
                 </p>
               </div>
@@ -880,113 +681,70 @@ export default function PingoGame() {
           </div>
         )}
 
-        {/* Game Over Overlay */}
+        {/* Game Over Screen */}
         {gameState.screen === 'gameover' && (
-          <div
-            className="absolute inset-0 flex flex-col items-center justify-center"
-            style={{
-              background: 'rgba(10, 10, 10, 0.9)',
-              borderRadius: '12px',
-            }}
-          >
-            <h2
-              className="text-3xl font-bold mb-6"
-              style={{
-                color: COLORS.obstacle,
-                textShadow: `0 0 20px ${COLORS.obstacle}`,
-              }}
-            >
-              GAME OVER
-            </h2>
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--background)]/95 border border-[var(--border)]">
+            <p className="text-xs text-[var(--muted)] uppercase tracking-widest mb-6">
+              Game Over
+            </p>
 
-            <div className="mb-8 text-center">
-              <p style={{ color: COLORS.textMuted }} className="text-sm mb-1">
-                Score
-              </p>
-              <p style={{ color: COLORS.text }} className="text-4xl font-bold mb-4">
-                {gameState.score}
-              </p>
+            <p className="text-4xl font-medium text-[var(--foreground)] mb-6">
+              {gameState.score}
+            </p>
 
-              <div className="flex gap-8">
-                <div className="text-center">
-                  <p style={{ color: COLORS.coin }}>
-                    {gameState.coins}
-                  </p>
-                  <p style={{ color: COLORS.textMuted }} className="text-xs">
-                    Coins
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p style={{ color: COLORS.comboGlow }}>
-                    x{gameState.maxCombo}
-                  </p>
-                  <p style={{ color: COLORS.textMuted }} className="text-xs">
-                    Best Combo
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p style={{ color: COLORS.accent }}>
-                    {gameState.nearMisses}
-                  </p>
-                  <p style={{ color: COLORS.textMuted }} className="text-xs">
-                    Near Misses
-                  </p>
-                </div>
+            <div className="flex gap-10 mb-8 text-center">
+              <div>
+                <p className="text-lg font-medium text-[var(--foreground)]">
+                  {gameState.coins}
+                </p>
+                <p className="text-xs text-[var(--muted)]">Coins</p>
+              </div>
+              <div>
+                <p className="text-lg font-medium text-[var(--foreground)]">
+                  {gameState.maxCombo}x
+                </p>
+                <p className="text-xs text-[var(--muted)]">Combo</p>
+              </div>
+              <div>
+                <p className="text-lg font-medium text-[var(--foreground)]">
+                  {gameState.nearMisses}
+                </p>
+                <p className="text-xs text-[var(--muted)]">Near</p>
               </div>
             </div>
 
             {highScore && gameState.score >= highScore.score && (
-              <p
-                className="mb-4 text-lg font-bold animate-pulse"
-                style={{ color: COLORS.coin }}
-              >
-                NEW HIGH SCORE!
+              <p className="text-xs text-[var(--muted)] mb-6">
+                New best score
               </p>
             )}
 
             <button
               onClick={handleInput}
-              className="px-10 py-3 text-lg font-bold rounded-full transition-all hover:scale-105"
-              style={{
-                background: COLORS.accent,
-                color: COLORS.background,
-                boxShadow: `0 0 30px ${COLORS.accent}66`,
-              }}
+              className="px-8 py-3 text-sm font-medium border border-[var(--foreground)] text-[var(--foreground)] hover:bg-[var(--foreground)] hover:text-[var(--background)] transition-colors"
             >
-              PLAY AGAIN
+              Play Again
             </button>
 
-            {highScore && (
-              <div className="mt-6 text-center">
-                <p style={{ color: COLORS.textMuted }} className="text-xs">
-                  Best: {highScore.score}
-                </p>
-              </div>
+            {highScore && gameState.score < highScore.score && (
+              <p className="mt-8 text-xs text-[var(--muted)]">
+                Best: {highScore.score}
+              </p>
             )}
           </div>
         )}
 
-        {/* Mobile Tap Zone Indicator */}
+        {/* Playing indicator */}
         {gameState.screen === 'playing' && (
-          <div
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 px-6 py-2 rounded-full"
-            style={{
-              background: 'rgba(0, 245, 255, 0.1)',
-              border: '1px solid rgba(0, 245, 255, 0.3)',
-            }}
-          >
-            <p style={{ color: COLORS.accent }} className="text-sm font-medium">
-              TAP ANYWHERE
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
+            <p className="text-xs text-[var(--muted)]">
+              tap anywhere
             </p>
           </div>
         )}
       </div>
 
-      {/* Footer */}
-      <p
-        className="mt-6 text-xs"
-        style={{ color: COLORS.textMuted }}
-      >
+      <p className="mt-8 text-xs text-[var(--muted)]">
         Space / Tap to switch lanes
       </p>
     </div>
