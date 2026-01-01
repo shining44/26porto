@@ -38,3 +38,4 @@ jobs:
           timeout: 60000
           local-dir: ./portfolio/out/
           server-dir: ./
+          dangerous-clean-slate: true
