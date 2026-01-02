@@ -48,6 +48,10 @@ interface GameState {
   distance: number;
   speed: number;
   nearMisses: number;
+  boostCharge: number;
+  boostActive: boolean;
+  boostTime: number;
+  boostsTriggered: number;
 }
 
 interface HighScore {
@@ -71,6 +75,12 @@ const MAX_SPEED = 11;
 const SPEED_INCREMENT = 0.0008;
 const MIN_OBSTACLE_GAP = 220;
 const COIN_SPAWN_DISTANCE = 160;
+const BOOST_CHARGE_MAX = 100;
+const BOOST_COIN_GAIN = 22;
+const BOOST_NEAR_MISS_GAIN = 14;
+const BOOST_DURATION = 4.5;
+const BOOST_SCORE_MULTIPLIER = 2;
+const BOOST_SPEED_BONUS = 2.2;
 
 // ============================================================================
 // GAME COMPONENT
@@ -98,6 +108,10 @@ export default function PingoGame() {
     distance: 0,
     speed: BASE_SPEED,
     nearMisses: 0,
+    boostCharge: 0,
+    boostActive: false,
+    boostTime: 0,
+    boostsTriggered: 0,
   });
 
   const carRef = useRef<Car>({
@@ -133,6 +147,14 @@ export default function PingoGame() {
 
   const easeOutQuad = (t: number): number => t * (2 - t);
   const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
+  const getStreakMultiplier = useCallback(
+    (combo: number): number => 1 + Math.min(3, Math.floor(combo / 4)),
+    [],
+  );
+  const getTotalMultiplier = useCallback((state: GameState): number => {
+    const streakMultiplier = getStreakMultiplier(state.combo);
+    return state.boostActive ? streakMultiplier * BOOST_SCORE_MULTIPLIER : streakMultiplier;
+  }, [getStreakMultiplier]);
 
   // Read CSS variables for theme colors
   const updateColors = useCallback(() => {
@@ -243,11 +265,24 @@ export default function PingoGame() {
 
       if (obsTop > carBottom && !obstacle.passed) {
         obstacle.passed = true;
-        if (car.lane === obstacle.lane || Math.abs(car.x - getLaneX(obstacle.lane)) < LANE_WIDTH * 0.6) {
-          state.score += 15;
+        const closeCall = car.lane === obstacle.lane
+          || Math.abs(car.x - getLaneX(obstacle.lane)) < LANE_WIDTH * 0.35;
+        if (closeCall) {
+          state.score += Math.round(18 * getTotalMultiplier(state));
           state.nearMisses++;
           state.combo++;
           if (state.combo > state.maxCombo) state.maxCombo = state.combo;
+          state.boostCharge = Math.min(BOOST_CHARGE_MAX, state.boostCharge + BOOST_NEAR_MISS_GAIN);
+        } else {
+          state.combo = 0;
+        }
+
+        if (!state.boostActive && state.boostCharge >= BOOST_CHARGE_MAX) {
+          state.boostActive = true;
+          state.boostTime = BOOST_DURATION;
+          state.boostCharge = 0;
+          state.boostsTriggered++;
+          spawnParticles(car.x, car.y, 12);
         }
         continue;
       }
@@ -267,15 +302,23 @@ export default function PingoGame() {
       if (distance < 28) {
         coin.collected = true;
         state.coins++;
-        state.score += 10;
+        state.score += Math.round(20 * getTotalMultiplier(state));
         state.combo++;
         if (state.combo > state.maxCombo) state.maxCombo = state.combo;
+        state.boostCharge = Math.min(BOOST_CHARGE_MAX, state.boostCharge + BOOST_COIN_GAIN);
+        if (!state.boostActive && state.boostCharge >= BOOST_CHARGE_MAX) {
+          state.boostActive = true;
+          state.boostTime = BOOST_DURATION;
+          state.boostCharge = 0;
+          state.boostsTriggered++;
+          spawnParticles(car.x, car.y, 14);
+        }
         spawnParticles(coinX, coinY, 6);
       }
     }
 
     return false;
-  }, [getLaneX, spawnParticles]);
+  }, [getLaneX, spawnParticles, getTotalMultiplier]);
 
   // ============================================================================
   // GAME LOOP
@@ -301,8 +344,18 @@ export default function PingoGame() {
 
     if (state.screen === 'playing') {
       state.speed = Math.min(MAX_SPEED, state.speed + SPEED_INCREMENT);
-      state.distance += state.speed;
-      state.score += 1;
+      if (state.boostActive) {
+        state.boostTime = Math.max(0, state.boostTime - deltaTime);
+        if (state.boostTime === 0) {
+          state.boostActive = false;
+        }
+      }
+
+      const speedBonus = state.boostActive ? BOOST_SPEED_BONUS : 0;
+      const effectiveSpeed = state.speed + speedBonus;
+
+      state.distance += effectiveSpeed;
+      state.score += Math.round((1 + state.speed * 0.08) * getTotalMultiplier(state));
 
       if (car.switchProgress < 1) {
         car.switchProgress = Math.min(1, car.switchProgress + deltaTime / (SWITCH_DURATION / 1000));
@@ -317,8 +370,8 @@ export default function PingoGame() {
         car.rotation = lerp(car.rotation, 0, 0.15);
       }
 
-      obstaclesRef.current.forEach(obs => { obs.y += state.speed; });
-      coinsRef.current.forEach(coin => { coin.y += state.speed; });
+      obstaclesRef.current.forEach(obs => { obs.y += effectiveSpeed; });
+      coinsRef.current.forEach(coin => { coin.y += effectiveSpeed; });
 
       if (lastObstacleYRef.current > MIN_OBSTACLE_GAP) {
         const spawnChance = 0.015 + state.speed * 0.004;
@@ -326,7 +379,7 @@ export default function PingoGame() {
           spawnObstaclePattern();
         }
       }
-      lastObstacleYRef.current += state.speed;
+      lastObstacleYRef.current += effectiveSpeed;
 
       if (lastCoinYRef.current > COIN_SPAWN_DISTANCE) {
         if (Math.random() < 0.35) {
@@ -334,7 +387,7 @@ export default function PingoGame() {
         }
         lastCoinYRef.current = 0;
       }
-      lastCoinYRef.current += state.speed;
+      lastCoinYRef.current += effectiveSpeed;
 
       obstaclesRef.current = obstaclesRef.current.filter(o => o.y < dimensions.height + 100);
       coinsRef.current = coinsRef.current.filter(c => c.y < dimensions.height + 50 && !c.collected);
@@ -349,6 +402,8 @@ export default function PingoGame() {
       if (checkCollisions()) {
         state.screen = 'gameover';
         state.combo = 0;
+        state.boostActive = false;
+        state.boostTime = 0;
         spawnParticles(car.x, car.y, 12);
 
         const newScore: HighScore = {
@@ -493,18 +548,56 @@ export default function PingoGame() {
 
       ctx.fillStyle = colors.muted;
       ctx.font = '400 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-      ctx.fillText(`${state.coins}`, 20, 56);
+      ctx.fillText(`${state.coins} coins`, 20, 56);
 
-      if (state.combo > 1) {
+      const streakMultiplier = getStreakMultiplier(state.combo);
+      if (streakMultiplier > 1) {
         ctx.fillStyle = colors.foreground;
         ctx.font = '500 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
         ctx.textAlign = 'right';
-        ctx.fillText(`${state.combo}x`, dimensions.width - 20, 36);
+        ctx.fillText(`x${streakMultiplier}`, dimensions.width - 20, 36);
       }
+
+      if (state.combo > 1) {
+        ctx.fillStyle = colors.muted;
+        ctx.font = '400 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(`${state.combo} streak`, dimensions.width - 20, 54);
+      }
+
+      const barWidth = 120;
+      const barHeight = 6;
+      const barX = dimensions.width / 2 - barWidth / 2;
+      const barY = 18;
+      const barFill = state.boostActive
+        ? (state.boostTime / BOOST_DURATION)
+        : Math.min(1, state.boostCharge / BOOST_CHARGE_MAX);
+
+      ctx.strokeStyle = colors.muted;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(barX, barY, barWidth, barHeight);
+      ctx.fillStyle = state.boostActive ? colors.foreground : colors.muted;
+      ctx.globalAlpha = state.boostActive ? 1 : 0.7;
+      ctx.fillRect(barX, barY, barWidth * barFill, barHeight);
+      ctx.globalAlpha = 1;
+
+      ctx.fillStyle = colors.muted;
+      ctx.font = '400 10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(state.boostActive ? 'BOOST!' : 'Boost', barX + barWidth / 2, barY - 4);
     }
 
     animationRef.current = requestAnimationFrame(gameLoop);
-  }, [dimensions, getLaneX, checkCollisions, spawnObstaclePattern, spawnCoin, spawnParticles]);
+  }, [
+    dimensions,
+    getLaneX,
+    checkCollisions,
+    spawnObstaclePattern,
+    spawnCoin,
+    spawnParticles,
+    getStreakMultiplier,
+    getTotalMultiplier,
+  ]);
 
   // ============================================================================
   // INPUT HANDLING
@@ -540,6 +633,10 @@ export default function PingoGame() {
       distance: 0,
       speed: BASE_SPEED,
       nearMisses: 0,
+      boostCharge: 0,
+      boostActive: false,
+      boostTime: 0,
+      boostsTriggered: 0,
     };
 
     carRef.current = {
@@ -659,7 +756,13 @@ export default function PingoGame() {
                 Tap or press Space to switch lanes
               </p>
               <p className="text-[var(--muted)] text-xs">
-                Collect coins, avoid obstacles
+                Collect coins + near misses to fill Boost
+              </p>
+              <p className="text-[var(--muted)] text-xs">
+                Boost doubles points and adds speed
+              </p>
+              <p className="text-[var(--muted)] text-xs">
+                Streaks raise your score multiplier
               </p>
             </div>
 
@@ -692,7 +795,7 @@ export default function PingoGame() {
               {gameState.score}
             </p>
 
-            <div className="flex gap-10 mb-8 text-center">
+            <div className="flex flex-wrap justify-center gap-10 mb-8 text-center">
               <div>
                 <p className="text-lg font-medium text-[var(--foreground)]">
                   {gameState.coins}
@@ -710,6 +813,12 @@ export default function PingoGame() {
                   {gameState.nearMisses}
                 </p>
                 <p className="text-xs text-[var(--muted)]">Near</p>
+              </div>
+              <div>
+                <p className="text-lg font-medium text-[var(--foreground)]">
+                  {gameState.boostsTriggered}
+                </p>
+                <p className="text-xs text-[var(--muted)]">Boosts</p>
               </div>
             </div>
 
@@ -738,14 +847,14 @@ export default function PingoGame() {
         {gameState.screen === 'playing' && (
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
             <p className="text-xs text-[var(--muted)]">
-              tap anywhere
+              tap anywhere • build streaks
             </p>
           </div>
         )}
       </div>
 
       <p className="mt-8 text-xs text-[var(--muted)]">
-        Space / Tap to switch lanes
+        Space / Tap to switch lanes • Fill Boost for double points
       </p>
     </div>
   );
