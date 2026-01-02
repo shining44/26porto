@@ -241,9 +241,12 @@ export default function PingoGame() {
       const obsTop = obstacle.y - obstacle.height / 2;
       const obsBottom = obstacle.y + obstacle.height / 2;
 
-      if (obsTop > carBottom && !obstacle.passed) {
+      if (obsTop > carBottom) {
         obstacle.passed = true;
-        if (car.lane === obstacle.lane || Math.abs(car.x - getLaneX(obstacle.lane)) < LANE_WIDTH * 0.6) {
+        // Near-miss detection: use position-based check only (not lane index)
+        // to handle mid-lane-switch scenarios correctly
+        const distanceFromObstacle = Math.abs(car.x - getLaneX(obstacle.lane));
+        if (distanceFromObstacle < LANE_WIDTH * 0.35) {
           state.score += 15;
           state.nearMisses++;
           state.combo++;
@@ -337,6 +340,7 @@ export default function PingoGame() {
       lastCoinYRef.current += state.speed;
 
       obstaclesRef.current = obstaclesRef.current.filter(o => o.y < dimensions.height + 100);
+      // Remove collected coins immediately for memory efficiency
       coinsRef.current = coinsRef.current.filter(c => c.y < dimensions.height + 50 && !c.collected);
 
       particlesRef.current.forEach(p => {
