@@ -270,10 +270,7 @@ export default function RibbonFlipGame() {
     return (
       <div className="flex flex-wrap gap-1 justify-center max-w-[340px]">
         {ribbon.map((color, i) => {
-          const isSelected = selectionStart !== null &&
-            ((selectionStart <= i) || (i <= selectionStart));
-          const inRange = selectionStart !== null &&
-            i >= Math.min(selectionStart, i) && i <= Math.max(selectionStart, i);
+          const isSelected = selectionStart === i;
 
           return (
             <button
