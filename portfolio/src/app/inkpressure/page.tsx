@@ -214,6 +214,45 @@ export default function InkPressureGame() {
     }
   }, []);
 
+  const saveScore = useCallback((score: number, mode: 'daily' | 'practice', seed: string) => {
+    setSavedData(prev => {
+      const newData = { ...prev };
+      if (score > prev.bestScore) {
+        newData.bestScore = score;
+      }
+      if (mode === 'daily') {
+        newData.lastDaily = seed;
+        newData.lastDailyScore = score;
+      }
+      localStorage.setItem('inkpressure_data', JSON.stringify(newData));
+      return newData;
+    });
+  }, []);
+
+  // Keyboard controls for stencil selection
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameState.screen !== 'playing') return;
+
+      if (e.key === '1') {
+        setGameState(prev => ({ ...prev, selectedStencil: prev.selectedStencil === 0 ? null : 0 }));
+      } else if (e.key === '2') {
+        setGameState(prev => ({ ...prev, selectedStencil: prev.selectedStencil === 1 ? null : 1 }));
+      } else if (e.key === '3') {
+        setGameState(prev => ({ ...prev, selectedStencil: prev.selectedStencil === 2 ? null : 2 }));
+      } else if (e.key === 'z' || e.key === 'Z') {
+        if (undoStack.length > 0) {
+          const prevState = undoStack[undoStack.length - 1];
+          setGameState(prevState);
+          setUndoStack(prev => prev.slice(0, -1));
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [gameState.screen, undoStack]);
+
   const startGame = useCallback((mode: 'daily' | 'practice') => {
     const seed = mode === 'daily' ? getDateSeed() : `practice-${Date.now()}`;
     randRef.current = seededRandom(seed);
@@ -281,18 +320,9 @@ export default function InkPressureGame() {
 
     // Save results on game over
     if (isGameOver) {
-      const newSavedData = { ...savedData };
-      if (newState.score > savedData.bestScore) {
-        newSavedData.bestScore = newState.score;
-      }
-      if (gameState.mode === 'daily') {
-        newSavedData.lastDaily = gameState.seed;
-        newSavedData.lastDailyScore = newState.score;
-      }
-      setSavedData(newSavedData);
-      localStorage.setItem('inkpressure_data', JSON.stringify(newSavedData));
+      saveScore(newState.score, gameState.mode, gameState.seed);
     }
-  }, [gameState, savedData]);
+  }, [gameState, saveScore]);
 
   const handleUndo = useCallback(() => {
     if (undoStack.length === 0) return;

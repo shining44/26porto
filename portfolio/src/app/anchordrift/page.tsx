@@ -166,6 +166,39 @@ export default function AnchorDriftGame() {
     }
   }, []);
 
+  const saveScore = useCallback((score: number, mode: 'daily' | 'practice', seed: string) => {
+    setSavedData(prev => {
+      const newData = { ...prev };
+      if (score > prev.bestScore) {
+        newData.bestScore = score;
+      }
+      if (mode === 'daily') {
+        newData.lastDaily = seed;
+        newData.lastDailyScore = score;
+      }
+      localStorage.setItem('anchordrift_data', JSON.stringify(newData));
+      return newData;
+    });
+  }, []);
+
+  // Keyboard controls
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameState.screen !== 'playing') return;
+
+      if (e.key === 'z' || e.key === 'Z') {
+        if (undoStack.length > 0) {
+          const prevState = undoStack[undoStack.length - 1];
+          setGameState(prevState);
+          setUndoStack(prev => prev.slice(0, -1));
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [gameState.screen, undoStack]);
+
   const startGame = useCallback((mode: 'daily' | 'practice') => {
     const seed = mode === 'daily' ? getDateSeed() : `practice-${Date.now()}`;
     randRef.current = seededRandom(seed);
@@ -276,18 +309,9 @@ export default function AnchorDriftGame() {
 
     // Save on game over
     if (isGameOver) {
-      const newSavedData = { ...savedData };
-      if (newScore > savedData.bestScore) {
-        newSavedData.bestScore = newScore;
-      }
-      if (gameState.mode === 'daily') {
-        newSavedData.lastDaily = gameState.seed;
-        newSavedData.lastDailyScore = newScore;
-      }
-      setSavedData(newSavedData);
-      localStorage.setItem('anchordrift_data', JSON.stringify(newSavedData));
+      saveScore(newScore, gameState.mode, gameState.seed);
     }
-  }, [gameState, savedData]);
+  }, [gameState, saveScore]);
 
   const handleUndo = useCallback(() => {
     if (undoStack.length === 0) return;

@@ -166,45 +166,28 @@ export default function BraidstackGame() {
     }
   }, []);
 
-  // Auto-drop timer
-  useEffect(() => {
-    if (gameState.screen !== 'playing') return;
-
-    timerRef.current = setInterval(() => {
-      setGameState(prev => {
-        if (prev.screen !== 'playing') return prev;
-
-        const newTimer = prev.autoDropTimer - 100;
-        if (newTimer <= 0) {
-          // Auto-drop
-          return handleDropInternal(prev);
-        }
-        return { ...prev, autoDropTimer: newTimer };
-      });
-    }, 100);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [gameState.screen]);
+  const saveScore = useCallback((score: number, mode: 'daily' | 'practice', seed: string) => {
+    setSavedData(prev => {
+      const newData = { ...prev };
+      if (score > prev.bestScore) {
+        newData.bestScore = score;
+      }
+      if (mode === 'daily') {
+        newData.lastDaily = seed;
+        newData.lastDailyScore = score;
+      }
+      localStorage.setItem('braidstack_data', JSON.stringify(newData));
+      return newData;
+    });
+  }, []);
 
   const handleDropInternal = useCallback((state: GameState): GameState => {
     const { grid, incoming } = state;
 
     // Check if bottom row has any non-empty cell (overflow)
     if (grid[GRID_HEIGHT - 1].some(c => c !== 0)) {
-      // Game over
-      const newSavedData = { ...savedData };
-      if (state.score > savedData.bestScore) {
-        newSavedData.bestScore = state.score;
-      }
-      if (state.mode === 'daily') {
-        newSavedData.lastDaily = state.seed;
-        newSavedData.lastDailyScore = state.score;
-      }
-      setSavedData(newSavedData);
-      localStorage.setItem('braidstack_data', JSON.stringify(newSavedData));
-
+      // Game over - save score
+      saveScore(state.score, state.mode, state.seed);
       return { ...state, screen: 'gameover' };
     }
 
@@ -223,8 +206,6 @@ export default function BraidstackGame() {
     if (chainWaves > 1) {
       addedScore += (chainWaves - 1) * 15;
     }
-    // Bonus for high-rank patterns
-    // (We already cleared, so we can't check here easily - skip for simplicity)
 
     // Generate new incoming
     const newIncoming = generateIncoming(randRef.current);
@@ -239,7 +220,28 @@ export default function BraidstackGame() {
       bestChain: Math.max(state.bestChain, chainWaves),
       autoDropTimer: AUTO_DROP_TIME,
     };
-  }, [savedData]);
+  }, [saveScore]);
+
+  // Auto-drop timer
+  useEffect(() => {
+    if (gameState.screen !== 'playing') return;
+
+    timerRef.current = setInterval(() => {
+      setGameState(prev => {
+        if (prev.screen !== 'playing') return prev;
+
+        const newTimer = prev.autoDropTimer - 100;
+        if (newTimer <= 0) {
+          return handleDropInternal(prev);
+        }
+        return { ...prev, autoDropTimer: newTimer };
+      });
+    }, 100);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [gameState.screen, handleDropInternal]);
 
   const startGame = useCallback((mode: 'daily' | 'practice') => {
     const seed = mode === 'daily' ? getDateSeed() : `practice-${Date.now()}`;
@@ -281,6 +283,41 @@ export default function BraidstackGame() {
     if (gameState.screen !== 'playing') return;
     setGameState(prev => handleDropInternal(prev));
   }, [gameState.screen, handleDropInternal]);
+
+  // Keyboard controls
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameState.screen !== 'playing') return;
+
+      if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (gameState.swapsLeft > 0) {
+          setGameState(prev => {
+            if (prev.swapsLeft <= 0) return prev;
+            const newIncoming = [...prev.incoming] as [Cell, Cell, Cell];
+            [newIncoming[0], newIncoming[1]] = [newIncoming[1], newIncoming[0]];
+            return { ...prev, incoming: newIncoming, swapsLeft: prev.swapsLeft - 1 };
+          });
+        }
+      } else if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (gameState.swapsLeft > 0) {
+          setGameState(prev => {
+            if (prev.swapsLeft <= 0) return prev;
+            const newIncoming = [...prev.incoming] as [Cell, Cell, Cell];
+            [newIncoming[1], newIncoming[2]] = [newIncoming[2], newIncoming[1]];
+            return { ...prev, incoming: newIncoming, swapsLeft: prev.swapsLeft - 1 };
+          });
+        }
+      } else if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        setGameState(prev => handleDropInternal(prev));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [gameState.screen, gameState.swapsLeft, handleDropInternal]);
 
   const copyShare = useCallback(() => {
     const { seed, score, turn, bestChain } = gameState;

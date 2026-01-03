@@ -11,11 +11,11 @@ type TrainColor = 'R' | 'G' | 'B';
 interface Train {
   id: number;
   color: TrainColor;
-  x: number;
-  y: number;
   progress: number; // Position along the track path (0-100)
-  path: 'upper' | 'lower' | 'merge';
-  delivered: boolean;
+  // Track which path the train locked into at each switch
+  pathAtSwitch0: boolean | null; // true = upper, false = lower, null = not yet decided
+  pathAtSwitch1: boolean | null; // true = to exit, false = to merge
+  pathAtSwitch2: boolean | null; // true = to exit, false = to merge
 }
 
 interface GameState {
@@ -43,11 +43,9 @@ interface SavedData {
 // CONSTANTS
 // ============================================================================
 
-const INITIAL_TICK_MS = 250;
-const MIN_TICK_MS = 120;
+const INITIAL_TICK_MS = 300;
+const MIN_TICK_MS = 100;
 const INITIAL_LIVES = 3;
-
-// Track layout constants
 const GRID_WIDTH = 400;
 const GRID_HEIGHT = 300;
 
@@ -124,119 +122,130 @@ export default function SwitchyardGame() {
     return {
       id: trainIdRef.current,
       color,
-      x: 0,
-      y: 150,
       progress: 0,
-      path: 'upper',
-      delivered: false,
+      pathAtSwitch0: null,
+      pathAtSwitch1: null,
+      pathAtSwitch2: null,
     };
   }, []);
 
-  // Get train position based on progress and switches
-  const getTrainPosition = useCallback((train: Train, switches: [boolean, boolean, boolean]): { x: number; y: number } => {
+  // Get train position based on progress and its locked-in path choices
+  const getTrainPosition = useCallback((train: Train): { x: number; y: number } => {
     const progress = train.progress;
 
     // Track segments:
-    // 0-20: Entry (left side)
-    // 20-40: First switch zone - split to upper or lower
-    // 40-60: Middle section
-    // 60-80: Second switch zone - upper goes to Red exit or merge, lower goes to Green exit or merge
-    // 80-100: Final approach to exits
+    // 0-25: Entry (left side) - before switch 0
+    // 25-50: After switch 0 - upper or lower track
+    // 50-75: After switch 1/2 - to exit or to merge
+    // 75-100: Final approach to exits
 
-    if (progress <= 20) {
-      // Entry from left
-      return { x: 20 + progress * 4, y: 150 };
+    if (progress <= 25) {
+      // Entry from left (before first switch)
+      const t = progress / 25;
+      return { x: 20 + t * 80, y: 150 };
     }
 
-    if (progress <= 40) {
-      const t = (progress - 20) / 20;
-      if (switches[0]) {
-        // Going to upper path
+    // After switch 0
+    const onUpper = train.pathAtSwitch0 === true;
+
+    if (progress <= 50) {
+      const t = (progress - 25) / 25;
+      if (onUpper) {
         return { x: 100 + t * 80, y: 150 - t * 70 };
       } else {
-        // Going to lower path
         return { x: 100 + t * 80, y: 150 + t * 70 };
       }
     }
 
-    // Determine which path train is on based on where it was at switch 0
-    const onUpperPath = switches[0];
-
-    if (progress <= 60) {
-      const t = (progress - 40) / 20;
-      if (onUpperPath) {
-        return { x: 180 + t * 60, y: 80 };
-      } else {
-        return { x: 180 + t * 60, y: 220 };
-      }
-    }
-
-    if (progress <= 80) {
-      const t = (progress - 60) / 20;
-      if (onUpperPath) {
-        if (switches[1]) {
-          // Upper path to Red exit (top-right)
-          return { x: 240 + t * 80, y: 80 - t * 30 };
+    if (progress <= 75) {
+      const t = (progress - 50) / 25;
+      if (onUpper) {
+        const toExit = train.pathAtSwitch1 === true;
+        if (toExit) {
+          return { x: 180 + t * 100, y: 80 - t * 30 };
         } else {
-          // Upper path to merge
-          return { x: 240 + t * 60, y: 80 + t * 70 };
+          return { x: 180 + t * 80, y: 80 + t * 70 };
         }
       } else {
-        if (switches[2]) {
-          // Lower path to Green exit (bottom-right)
-          return { x: 240 + t * 80, y: 220 + t * 30 };
+        const toExit = train.pathAtSwitch2 === true;
+        if (toExit) {
+          return { x: 180 + t * 100, y: 220 + t * 30 };
         } else {
-          // Lower path to merge
-          return { x: 240 + t * 60, y: 220 - t * 70 };
+          return { x: 180 + t * 80, y: 220 - t * 70 };
         }
       }
     }
 
     // Final approach
-    const t = (progress - 80) / 20;
-    if (onUpperPath && switches[1]) {
-      // To Red exit
-      return { x: 320 + t * 60, y: 50 };
-    } else if (!onUpperPath && switches[2]) {
-      // To Green exit
-      return { x: 320 + t * 60, y: 250 };
+    const t = (progress - 75) / 25;
+    if (onUpper && train.pathAtSwitch1 === true) {
+      return { x: 280 + t * 100, y: 50 };
+    } else if (!onUpper && train.pathAtSwitch2 === true) {
+      return { x: 280 + t * 100, y: 250 };
     } else {
-      // To Blue exit (merge)
-      return { x: 300 + t * 80, y: 150 };
+      return { x: 260 + t * 120, y: 150 };
     }
   }, []);
 
-  // Determine which exit a train will reach
-  const getTrainExit = useCallback((switches: [boolean, boolean, boolean]): TrainColor => {
-    if (switches[0] && switches[1]) return 'R'; // Upper path to Red
-    if (!switches[0] && switches[2]) return 'G'; // Lower path to Green
-    return 'B'; // Merge to Blue
+  // Determine which exit a train will reach based on its locked paths
+  const getTrainDestination = useCallback((train: Train): TrainColor => {
+    if (train.pathAtSwitch0 === true && train.pathAtSwitch1 === true) return 'R';
+    if (train.pathAtSwitch0 === false && train.pathAtSwitch2 === true) return 'G';
+    return 'B';
+  }, []);
+
+  const saveScore = useCallback((score: number, mode: 'daily' | 'practice', seed: string) => {
+    setSavedData(prev => {
+      const newData = { ...prev };
+      if (score > prev.bestScore) {
+        newData.bestScore = score;
+      }
+      if (mode === 'daily') {
+        newData.lastDaily = seed;
+        newData.lastDailyScore = score;
+      }
+      localStorage.setItem('switchyard_data', JSON.stringify(newData));
+      return newData;
+    });
   }, []);
 
   const gameLoop = useCallback(() => {
     setGameState(prev => {
       if (prev.screen !== 'playing') return prev;
 
-      let newTrains = [...prev.trains];
+      let newTrains = prev.trains.map(train => {
+        const newTrain = { ...train, progress: train.progress + 4 };
+
+        // Lock in path choices at switch points
+        if (newTrain.progress >= 25 && newTrain.pathAtSwitch0 === null) {
+          newTrain.pathAtSwitch0 = prev.switches[0];
+        }
+        if (newTrain.progress >= 50) {
+          if (newTrain.pathAtSwitch0 === true && newTrain.pathAtSwitch1 === null) {
+            newTrain.pathAtSwitch1 = prev.switches[1];
+          }
+          if (newTrain.pathAtSwitch0 === false && newTrain.pathAtSwitch2 === null) {
+            newTrain.pathAtSwitch2 = prev.switches[2];
+          }
+        }
+
+        return newTrain;
+      });
+
       let newScore = prev.score;
       let newDelivered = prev.delivered;
       let newStreak = prev.streak;
       let newBestStreak = prev.bestStreak;
       let newLives = prev.lives;
       let newTickMs = prev.tickMs;
-      let collision = false;
-
-      // Move trains
-      newTrains = newTrains.map(train => ({
-        ...train,
-        progress: train.progress + 3,
-      }));
 
       // Check for deliveries
-      newTrains = newTrains.filter(train => {
+      const deliveredTrains: number[] = [];
+      newTrains.forEach((train, idx) => {
         if (train.progress >= 100) {
-          const exit = getTrainExit(prev.switches);
-          if (exit === train.color) {
+          deliveredTrains.push(idx);
+          const destination = getTrainDestination(train);
+          if (destination === train.color) {
             // Correct delivery
             newScore += 10 + newStreak * 2;
             newDelivered++;
@@ -245,49 +254,40 @@ export default function SwitchyardGame() {
 
             // Speed up every 5 deliveries
             if (newDelivered % 5 === 0) {
-              newTickMs = Math.max(MIN_TICK_MS, newTickMs - 10);
+              newTickMs = Math.max(MIN_TICK_MS, newTickMs - 15);
             }
           } else {
             // Wrong exit
             newLives--;
             newStreak = 0;
           }
-          return false;
         }
-        return true;
       });
 
+      newTrains = newTrains.filter((_, idx) => !deliveredTrains.includes(idx));
+
       // Check for collisions (trains at similar positions)
-      for (let i = 0; i < newTrains.length; i++) {
-        for (let j = i + 1; j < newTrains.length; j++) {
-          const pos1 = getTrainPosition(newTrains[i], prev.switches);
-          const pos2 = getTrainPosition(newTrains[j], prev.switches);
+      let collision = false;
+      for (let i = 0; i < newTrains.length && !collision; i++) {
+        for (let j = i + 1; j < newTrains.length && !collision; j++) {
+          const pos1 = getTrainPosition(newTrains[i]);
+          const pos2 = getTrainPosition(newTrains[j]);
           const dist = Math.sqrt((pos1.x - pos2.x) ** 2 + (pos1.y - pos2.y) ** 2);
-          if (dist < 15) {
+          if (dist < 20) {
             collision = true;
           }
         }
       }
 
       if (collision || newLives <= 0) {
-        // Game over
-        const newSavedData = { ...savedData };
-        if (newScore > savedData.bestScore) {
-          newSavedData.bestScore = newScore;
-        }
-        if (prev.mode === 'daily') {
-          newSavedData.lastDaily = prev.seed;
-          newSavedData.lastDailyScore = newScore;
-        }
-        setSavedData(newSavedData);
-        localStorage.setItem('switchyard_data', JSON.stringify(newSavedData));
-
-        return { ...prev, screen: 'gameover', score: newScore, bestStreak: newBestStreak };
+        saveScore(newScore, prev.mode, prev.seed);
+        return { ...prev, screen: 'gameover', score: newScore, bestStreak: newBestStreak, trains: newTrains };
       }
 
       // Spawn new trains
       let newSpawnCounter = prev.spawnCounter + 1;
-      if (newSpawnCounter >= 15 && newTrains.length < 4) {
+      const maxTrains = Math.min(4, 2 + Math.floor(newDelivered / 10));
+      if (newSpawnCounter >= 12 && newTrains.length < maxTrains) {
         newTrains.push(spawnTrain(randRef.current));
         newSpawnCounter = 0;
       }
@@ -304,7 +304,7 @@ export default function SwitchyardGame() {
         spawnCounter: newSpawnCounter,
       };
     });
-  }, [getTrainPosition, getTrainExit, spawnTrain, savedData]);
+  }, [getTrainPosition, getTrainDestination, spawnTrain, saveScore]);
 
   // Game tick
   useEffect(() => {
@@ -316,6 +316,19 @@ export default function SwitchyardGame() {
       if (tickRef.current) clearInterval(tickRef.current);
     };
   }, [gameState.screen, gameState.tickMs, gameLoop]);
+
+  // Keyboard controls
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameState.screen !== 'playing') return;
+      if (e.key === '1') toggleSwitch(0);
+      else if (e.key === '2') toggleSwitch(1);
+      else if (e.key === '3') toggleSwitch(2);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [gameState.screen]);
 
   const startGame = useCallback((mode: 'daily' | 'practice') => {
     const seed = mode === 'daily' ? getDateSeed() : `practice-${Date.now()}`;
@@ -340,7 +353,7 @@ export default function SwitchyardGame() {
 
   const toggleSwitch = useCallback((index: number) => {
     const now = Date.now();
-    if (now - lastSwitchTime < 150) return; // Cooldown
+    if (now - lastSwitchTime < 100) return;
     setLastSwitchTime(now);
 
     setGameState(prev => {
@@ -365,84 +378,82 @@ export default function SwitchyardGame() {
         {/* Track lines */}
         <svg className="absolute inset-0" width={GRID_WIDTH} height={GRID_HEIGHT}>
           {/* Entry */}
-          <line x1="20" y1="150" x2="100" y2="150" stroke="var(--muted)" strokeWidth="2" />
+          <line x1="20" y1="150" x2="100" y2="150" stroke="var(--muted)" strokeWidth="3" />
 
           {/* First split */}
-          <line x1="100" y1="150" x2="180" y2="80" stroke="var(--muted)" strokeWidth="2" strokeDasharray={switches[0] ? "0" : "4"} />
-          <line x1="100" y1="150" x2="180" y2="220" stroke="var(--muted)" strokeWidth="2" strokeDasharray={switches[0] ? "4" : "0"} />
+          <line x1="100" y1="150" x2="180" y2="80" stroke="var(--muted)" strokeWidth="3" strokeOpacity={switches[0] ? 1 : 0.3} />
+          <line x1="100" y1="150" x2="180" y2="220" stroke="var(--muted)" strokeWidth="3" strokeOpacity={switches[0] ? 0.3 : 1} />
 
           {/* Upper horizontal */}
-          <line x1="180" y1="80" x2="240" y2="80" stroke="var(--muted)" strokeWidth="2" />
-          {/* Lower horizontal */}
-          <line x1="180" y1="220" x2="240" y2="220" stroke="var(--muted)" strokeWidth="2" />
+          <line x1="180" y1="80" x2="180" y2="80" stroke="var(--muted)" strokeWidth="3" />
 
           {/* Upper split - to Red or merge */}
-          <line x1="240" y1="80" x2="320" y2="50" stroke="var(--muted)" strokeWidth="2" strokeDasharray={switches[1] ? "0" : "4"} />
-          <line x1="240" y1="80" x2="300" y2="150" stroke="var(--muted)" strokeWidth="2" strokeDasharray={switches[1] ? "4" : "0"} />
+          <line x1="180" y1="80" x2="280" y2="50" stroke="var(--muted)" strokeWidth="3" strokeOpacity={switches[1] ? 1 : 0.3} />
+          <line x1="180" y1="80" x2="260" y2="150" stroke="var(--muted)" strokeWidth="3" strokeOpacity={switches[1] ? 0.3 : 1} />
 
           {/* Lower split - to Green or merge */}
-          <line x1="240" y1="220" x2="320" y2="250" stroke="var(--muted)" strokeWidth="2" strokeDasharray={switches[2] ? "0" : "4"} />
-          <line x1="240" y1="220" x2="300" y2="150" stroke="var(--muted)" strokeWidth="2" strokeDasharray={switches[2] ? "4" : "0"} />
+          <line x1="180" y1="220" x2="280" y2="250" stroke="var(--muted)" strokeWidth="3" strokeOpacity={switches[2] ? 1 : 0.3} />
+          <line x1="180" y1="220" x2="260" y2="150" stroke="var(--muted)" strokeWidth="3" strokeOpacity={switches[2] ? 0.3 : 1} />
 
           {/* Final to exits */}
-          <line x1="320" y1="50" x2="380" y2="50" stroke="var(--muted)" strokeWidth="2" />
-          <line x1="320" y1="250" x2="380" y2="250" stroke="var(--muted)" strokeWidth="2" />
-          <line x1="300" y1="150" x2="380" y2="150" stroke="var(--muted)" strokeWidth="2" />
+          <line x1="280" y1="50" x2="380" y2="50" stroke="var(--muted)" strokeWidth="3" />
+          <line x1="280" y1="250" x2="380" y2="250" stroke="var(--muted)" strokeWidth="3" />
+          <line x1="260" y1="150" x2="380" y2="150" stroke="var(--muted)" strokeWidth="3" />
         </svg>
 
         {/* Exits */}
-        <div className="absolute right-2 top-[35px] text-xs font-medium border border-[var(--foreground)] px-2 py-1">R</div>
-        <div className="absolute right-2 top-[135px] text-xs font-medium border border-[var(--foreground)] px-2 py-1">B</div>
-        <div className="absolute right-2 top-[235px] text-xs font-medium border border-[var(--foreground)] px-2 py-1">G</div>
+        <div className="absolute right-2 top-[35px] text-sm font-bold border-2 border-[var(--foreground)] px-3 py-1 bg-[var(--background)]">R</div>
+        <div className="absolute right-2 top-[135px] text-sm font-bold border-2 border-[var(--foreground)] px-3 py-1 bg-[var(--background)]">B</div>
+        <div className="absolute right-2 top-[235px] text-sm font-bold border-2 border-[var(--foreground)] px-3 py-1 bg-[var(--background)]">G</div>
 
         {/* Entry */}
-        <div className="absolute left-0 top-[140px] text-xs text-[var(--muted)] px-1">IN</div>
+        <div className="absolute left-1 top-[138px] text-xs text-[var(--muted)]">IN</div>
 
         {/* Switches */}
         <button
           onClick={() => toggleSwitch(0)}
-          className={`absolute w-6 h-6 flex items-center justify-center text-xs font-bold border transition-colors ${
+          className={`absolute w-8 h-8 flex items-center justify-center text-sm font-bold border-2 transition-all ${
             switches[0]
               ? 'bg-[var(--foreground)] text-[var(--background)] border-[var(--foreground)]'
               : 'bg-[var(--background)] text-[var(--foreground)] border-[var(--foreground)]'
           }`}
-          style={{ left: 87, top: 137 }}
+          style={{ left: 84, top: 134 }}
         >
           1
         </button>
         <button
           onClick={() => toggleSwitch(1)}
-          className={`absolute w-6 h-6 flex items-center justify-center text-xs font-bold border transition-colors ${
+          className={`absolute w-8 h-8 flex items-center justify-center text-sm font-bold border-2 transition-all ${
             switches[1]
               ? 'bg-[var(--foreground)] text-[var(--background)] border-[var(--foreground)]'
               : 'bg-[var(--background)] text-[var(--foreground)] border-[var(--foreground)]'
           }`}
-          style={{ left: 227, top: 67 }}
+          style={{ left: 164, top: 64 }}
         >
           2
         </button>
         <button
           onClick={() => toggleSwitch(2)}
-          className={`absolute w-6 h-6 flex items-center justify-center text-xs font-bold border transition-colors ${
+          className={`absolute w-8 h-8 flex items-center justify-center text-sm font-bold border-2 transition-all ${
             switches[2]
               ? 'bg-[var(--foreground)] text-[var(--background)] border-[var(--foreground)]'
               : 'bg-[var(--background)] text-[var(--foreground)] border-[var(--foreground)]'
           }`}
-          style={{ left: 227, top: 207 }}
+          style={{ left: 164, top: 204 }}
         >
           3
         </button>
 
         {/* Trains */}
         {trains.map(train => {
-          const pos = getTrainPosition(train, switches);
+          const pos = getTrainPosition(train);
           return (
             <div
               key={train.id}
-              className="absolute w-5 h-5 flex items-center justify-center text-xs font-bold border-2 border-[var(--foreground)] bg-[var(--background)] transition-all duration-75"
+              className="absolute w-6 h-6 flex items-center justify-center text-xs font-bold border-2 border-[var(--foreground)] bg-[var(--background)] transition-all duration-75 rounded-full"
               style={{
-                left: pos.x - 10,
-                top: pos.y - 10,
+                left: pos.x - 12,
+                top: pos.y - 12,
               }}
             >
               {train.color}
@@ -471,10 +482,10 @@ export default function SwitchyardGame() {
                 Route trains to matching exits
               </p>
               <p className="text-[var(--muted)] text-xs">
-                Toggle switches to change paths
+                Toggle switches before trains pass them
               </p>
               <p className="text-[var(--muted)] text-xs">
-                R train → Red, G train → Green, B train → Blue
+                R→Red (top), G→Green (bottom), B→Blue (middle)
               </p>
               <p className="text-[var(--muted)] text-xs">
                 Collisions or wrong exits cost lives
@@ -531,7 +542,7 @@ export default function SwitchyardGame() {
 
             <div className="mt-4 flex items-center gap-4">
               <p className="text-xs text-[var(--muted)]">
-                Click switches (1/2/3) to toggle
+                Press 1/2/3 or click switches
               </p>
               <button
                 onClick={() => setShowHelp(true)}
@@ -604,10 +615,10 @@ export default function SwitchyardGame() {
               </h3>
               <div className="text-sm text-[var(--muted)] space-y-2 mb-6">
                 <p>Trains spawn at the left and travel right.</p>
-                <p>Toggle switches (numbered 1-3) to route trains.</p>
-                <p>Match train colors to exits: R→Red, G→Green, B→Blue</p>
+                <p>Toggle switches BEFORE trains reach them.</p>
+                <p>Once a train passes a switch, its path is locked.</p>
+                <p>Route to matching exits: R→Red, G→Green, B→Blue</p>
                 <p>Wrong exits cost 1 life. Collisions end the game.</p>
-                <p>Speed increases every 5 correct deliveries.</p>
               </div>
               <button
                 onClick={() => setShowHelp(false)}
