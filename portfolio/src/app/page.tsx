@@ -4,21 +4,21 @@ const projects = [
     category: 'Consumer AI',
     year: '2023–Present',
     description:
-      'Generative AI assistant integrated across WhatsApp, Messenger, Instagram, and Meta devices. Features real-time web search, image generation, voice interaction with full-duplex dialogue, and personalized responses. Reached hundreds of millions of users through the standalone Meta AI app and Ray-Ban Meta smart glasses.',
+      "Led design for Meta's flagship AI assistant across messaging, social, and hardware surfaces. Defined conversational patterns and multimodal input flows for a team shipping to WhatsApp, Messenger, Instagram, and Ray-Ban Meta glasses. Scaled the experience from zero to hundreds of millions of monthly users.",
   },
   {
     title: 'Metamate',
     category: 'Enterprise AI',
     year: '2023–Present',
     description:
-      "Internal AI assistant trained on Meta's proprietary data, serving as the company's enterprise AI solution. Enables employees to query internal documentation, summarize documents and meetings, draft communications, and build custom AI agents via scripting.",
+      "Designed Meta's internal AI assistant used company-wide for knowledge retrieval, document synthesis, and workflow automation. Established design patterns for enterprise AI interactions—balancing power-user depth with broad accessibility across engineering, legal, and operations teams.",
   },
   {
     title: 'Devmate',
     category: 'Developer Tools',
     year: '2024–Present',
     description:
-      "Autonomous AI coding assistant with multi-agent architecture coordinating Meta's Llama, Anthropic Claude, and OpenAI models. Generates, refactors, and debugs code across entire codebases. Can diagnose failing tests, fix bugs, and submit code changes autonomously—reducing complex task completion time by half.",
+      'Led design for an autonomous coding agent that diagnoses, fixes, and ships code changes without human intervention. Defined the interaction model for developer trust and control in agentic workflows. Reduced complex task completion time by 50% in internal deployment.',
   },
 ];
 
